@@ -57,7 +57,7 @@ function validateListingQuery(q = {}) {
 
   if (q.source) {
     const source = String(q.source);
-    if (!/^[a-z0-9.\-]{2,30}$/i.test(source)) errors.push('source: neatļauti simboli');
+    if (!/^[\p{L}\p{N}.\-]{2,30}$/u.test(source)) errors.push('source: neatļauti simboli');
     else out.source = source;
   }
   if (q.fuel) {

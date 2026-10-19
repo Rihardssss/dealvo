@@ -40,7 +40,8 @@ function searchListings(f = {}) {
   if (f.maxMileage) items = items.filter((l) => l.mileage != null && l.mileage <= f.maxMileage);
 
   items.sort(SORTERS[f.sort || 'deal']);
-  return { total: items.length, items: items.slice(0, f.limit || 60) };
+  // Pilnās detaļas sarakstā nesūtām (tās ir /api/listing)
+  return { total: items.length, items: items.slice(0, f.limit || 60).map(({ details, detailsAt, ...l }) => l) };
 }
 
 /**

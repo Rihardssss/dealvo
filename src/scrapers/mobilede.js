@@ -60,6 +60,11 @@ function parseListPage(html, makeName) {
         image: img,
         thumb: img,
         country: 'DE',
+        seller: {
+          type: /dealer/i.test(i.sellerType || '') ? 'dīleris' : /fsbo|private/i.test(i.sellerType || '') ? 'privātpersona' : null,
+          name: /dealer/i.test(i.sellerType || '') ? (i.contactInfo?.name || null) : null,
+          city: i.contactInfo?.location || null,
+        },
       };
     });
   }

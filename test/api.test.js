@@ -75,3 +75,17 @@ test('scenārijs 9: modeļu saraksts markai un filtrs pēc virsbūves un gadu di
   const bad = await fetch(base + '/api/listings?body=traktors');
   assert.strictEqual(bad.status, 400);
 });
+
+test('scenārijs 10: sludinājuma pilnais skats ar pārdevēju un līdzīgajiem auto', async () => {
+  const list = await (await fetch(base + '/api/listings?sort=deal&limit=1')).json();
+  const l = list.items[0];
+  assert.strictEqual(l.details, undefined); // sarakstā detaļas nesūta
+  const res = await fetch(`${base}/api/listing?source=${encodeURIComponent(l.source)}&id=${encodeURIComponent(l.externalId)}`);
+  assert.strictEqual(res.status, 200);
+  const d = await res.json();
+  assert.ok(['dīleris', 'privātpersona'].includes(d.details.seller.type));
+  assert.ok(d.details.seller.city);
+  assert.ok(Array.isArray(d.similar));
+  assert.strictEqual((await fetch(base + '/api/listing?source=x&id=../../etc')).status, 400);
+  assert.strictEqual((await fetch(base + '/api/listing?source=ss.lv&id=nav')).status, 404);
+});

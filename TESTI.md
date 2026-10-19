@@ -1,6 +1,6 @@
 # Pārbaudes scenāriji
 
-Automātiskie testi: `npm test` → 29/29 izdodas (3 vietņu parsētāji, deal algoritms, API, AI asistents, admin aizsardzība).
+Automātiskie testi: `npm test` → 35/35 izdodas (3 vietņu parsētāji, deal algoritms, API, AI asistents, admin aizsardzība).
 
 ## 1. Lietotājs atrod labāko dealu
 | | |
@@ -57,3 +57,17 @@ Automātiskie testi: `npm test` → 29/29 izdodas (3 vietņu parsētāji, deal a
 | Soļi | "Atjaunot datus" → atzīmē ss.lv, AutoScout24, mobile.de → BMW → "Skenēt" |
 | Sagaidāmais | Katrai vietnei atsevišķs rezultāts; ja kāda bloķē, tā tiek parādīta sarkanā, pārējās dati saglabājas |
 | Rezultāts | ☐ Aizpildīt prezentācijas dienā |
+
+## 9. Sludinājuma pilnais skats un pārdevējs
+| | |
+|---|---|
+| Soļi | Nospiež uz jebkura auto |
+| Sagaidāmais | Atveras logs ar bildēm, tehniskajiem datiem, cenu salīdzinājumu, pārdevēju (dīleris/privātpersona + pilsēta) un līdzīgiem auto; Esc aizver |
+| Rezultāts | ✅ Izdodas |
+
+## 10. Privātums
+| | |
+|---|---|
+| Soļi | Sludinājums, kura aprakstā un kontaktos ir tālrunis un privātpersonas vārds |
+| Sagaidāmais | Tālrunis un vārds netiek saglabāti un netiek rādīti |
+| Rezultāts | ✅ Izdodas (automātiskie testi ar ss.lv un AutoScout24 paraugiem) |

@@ -6,6 +6,7 @@ const { SOURCES, scrapeMake } = require('./scrapers');
 const { scoreListings } = require('./deals');
 const { searchListings, modelsFor } = require('./search');
 const assistant = require('./assistant');
+const { getListing } = require('./listing-details');
 const { MAKE_TABLE } = require('./makes');
 const { MAKES, validateScrapeRequest, validateListingQuery } = require('./validate');
 
@@ -62,6 +63,25 @@ app.get('/api/models', (req, res) => {
   const make = String(req.query.make || '').toLowerCase();
   if (!MAKES[make]) return res.status(400).json({ errors: ['make: nezināma marka'] });
   res.json(modelsFor(make));
+});
+
+// Viena sludinājuma pilnais skats (detaļas tiek ielādētas no oriģinālās lapas un saglabātas 24 h)
+const detailHits = new Map();
+app.get('/api/listing', async (req, res) => {
+  const source = String(req.query.source || '');
+  const id = String(req.query.id || '');
+  if (!/^[\p{L}\p{N}.\-]{2,30}$/u.test(source) || !/^[\w\-]{1,64}$/.test(id)) {
+    return res.status(400).json({ errors: ['Nederīgs sludinājuma identifikators'] });
+  }
+  const ip = req.get('cf-connecting-ip') || req.ip;
+  const now = Date.now();
+  const recent = (detailHits.get(ip) || []).filter((t) => now - t < 60_000);
+  if (recent.length >= 30) return res.status(429).json({ errors: ['Pārāk daudz pieprasījumu, pagaidi minūti'] });
+  detailHits.set(ip, [...recent, now]);
+
+  const listing = await getListing(source, id);
+  if (!listing) return res.status(404).json({ errors: ['Sludinājums nav atrasts'] });
+  res.json(listing);
 });
 
 app.get('/api/listings', (req, res) => {

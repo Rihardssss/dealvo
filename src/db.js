@@ -60,6 +60,19 @@ function upsert(items) {
   return { added, updated, priceDrops };
 }
 
+/** Papildina vienu sludinājumu (piem. ar ielādētām detaļām). */
+function update(source, externalId, patch) {
+  const item = load().find((l) => l.source === source && l.externalId === externalId);
+  if (!item) return null;
+  Object.assign(item, patch);
+  save();
+  return item;
+}
+
+function find(source, externalId) {
+  return load().find((l) => l.source === source && l.externalId === externalId) || null;
+}
+
 function all() {
   return load();
 }
@@ -69,4 +82,4 @@ function clear() {
   save();
 }
 
-module.exports = { upsert, all, clear, FILE };
+module.exports = { upsert, all, clear, update, find, FILE };

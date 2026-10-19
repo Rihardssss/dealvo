@@ -84,6 +84,7 @@ function gauge(l) {
     </div>`;
 }
 
+// (vairs netiek lietots kartītēs — tās atver pilno skatu)
 const linkAttrs = (l) => {
   const url = safeUrl(l.url);
   return url ? `href="${esc(url)}" target="_blank" rel="noopener noreferrer"` : '';
@@ -91,48 +92,55 @@ const linkAttrs = (l) => {
 
 // ---------- Kartītes ----------
 
-// Kompakta kartīte AI atbildei
+// Atslēga, ar kuru atver sludinājuma pilno skatu
+const openAttr = (l) => `data-open="${esc(l.source)}|${esc(l.externalId)}"`;
+
+function sellerLine(s) {
+  if (!s || (!s.type && !s.city)) return '';
+  const who = s.type === 'dīleris' ? (s.name ? `Dīleris ${esc(s.name)}` : 'Dīleris') : s.type === 'privātpersona' ? 'Privātpersona' : '';
+  return [who, s.city ? esc(s.city) : ''].filter(Boolean).join(', ');
+}
+
+// Kompakta kartīte AI atbildei un līdzīgajiem auto
 function mini(l) {
-  const tag = safeUrl(l.url) ? 'a' : 'div';
   return `
-    <${tag} ${linkAttrs(l)} class="group flex items-center gap-3 rounded-lg border border-hair bg-paper p-2 pr-3 hover:border-faint">
+    <button type="button" ${openAttr(l)} class="group flex w-full items-center gap-3 rounded-lg border border-hair bg-paper p-2 pr-3 text-left hover:border-faint">
       ${photo(l, 'aspect-[4/3] w-24 flex-none rounded-md')}
-      <div class="min-w-0 flex-1">
-        <p class="truncate text-sm font-medium group-hover:underline group-hover:underline-offset-4">${esc(l.make)} ${esc(l.model)}, ${esc(l.year)}</p>
-        <p class="text-sm font-semibold">${eur(l.price)}</p>
-        <div class="mt-1">${dealBadge(l)}</div>
-      </div>
-    </${tag}>`;
+      <span class="block min-w-0 flex-1">
+        <span class="block truncate text-sm font-medium group-hover:underline group-hover:underline-offset-4">${esc(l.make)} ${esc(l.model)}, ${esc(l.year)}</span>
+        <span class="block text-sm font-semibold">${eur(l.price)}</span>
+        <span class="mt-1 block">${dealBadge(l)}</span>
+      </span>
+    </button>`;
 }
 
 function tile(l) {
-  const tag = safeUrl(l.url) ? 'a' : 'div';
   return `
-    <${tag} ${linkAttrs(l)} class="group block w-64 flex-none snap-start overflow-hidden rounded-xl border border-hair bg-paper transition-shadow hover:shadow-md sm:w-auto">
+    <button type="button" ${openAttr(l)} class="group block w-64 flex-none snap-start overflow-hidden rounded-xl border border-hair bg-paper text-left transition-shadow hover:shadow-md sm:w-auto">
       ${photo(l, 'aspect-[16/10]')}
-      <div class="p-4">
-        <p class="truncate font-medium group-hover:underline group-hover:underline-offset-4">${esc(l.make)} ${esc(l.model)}</p>
-        <p class="mt-0.5 text-sm text-sub">${esc(l.year)}${l.mileage != null ? `, ${fmt.format(l.mileage)} km` : ''}</p>
-        <div class="mt-3 flex items-end justify-between gap-2">
-          <p class="text-lg font-semibold tracking-tight">${eur(l.price)}</p>
+      <span class="block p-4">
+        <span class="block truncate font-medium group-hover:underline group-hover:underline-offset-4">${esc(l.make)} ${esc(l.model)}</span>
+        <span class="mt-0.5 block text-sm text-sub">${esc(l.year)}${l.mileage != null ? `, ${fmt.format(l.mileage)} km` : ''}</span>
+        <span class="mt-3 flex items-end justify-between gap-2">
+          <span class="text-lg font-semibold tracking-tight">${eur(l.price)}</span>
           ${dealBadge(l)}
-        </div>
-      </div>
-    </${tag}>`;
+        </span>
+      </span>
+    </button>`;
 }
 
 function listCard(l) {
-  const url = safeUrl(l.url);
   const prev = l.priceHistory?.length ? l.priceHistory.at(-1).price : null;
+  const seller = sellerLine(l.seller);
   return `
     <li class="overflow-hidden rounded-xl border border-hair bg-paper transition-shadow hover:shadow-md">
       <div class="grid sm:grid-cols-[240px_1fr]">
-        <a ${linkAttrs(l)} class="block">${photo(l, 'aspect-[4/3] h-full sm:aspect-auto sm:min-h-[180px]')}</a>
-        <div class="grid gap-4 p-4 sm:p-5 md:grid-cols-[1fr_180px]">
+        <button type="button" ${openAttr(l)} class="block text-left" aria-label="Atvērt ${esc(l.make)} ${esc(l.model)}">${photo(l, 'aspect-[4/3] h-full sm:aspect-auto sm:min-h-[180px]')}</button>
+        <div class="grid gap-4 p-4 sm:p-5 md:grid-cols-[1fr_190px]">
           <div class="min-w-0">
-            <a ${linkAttrs(l)} class="block truncate text-lg font-semibold tracking-tight ${url ? 'hover:underline hover:underline-offset-4' : ''}">
+            <button type="button" ${openAttr(l)} class="block max-w-full truncate text-left text-lg font-semibold tracking-tight hover:underline hover:underline-offset-4">
               ${esc(l.make)} ${esc(l.model)}
-            </a>
+            </button>
             <p class="truncate text-sm text-sub">${esc(l.title)}</p>
             <div class="mt-3 flex flex-wrap gap-1.5 text-sm text-sub">${facts(l)}</div>
             <div class="mt-5 max-w-md">${gauge(l)}</div>
@@ -144,14 +152,174 @@ function listCard(l) {
               <div class="mt-1.5">${dealBadge(l)}</div>
             </div>
             <div class="text-sm text-sub md:mt-auto">
+              ${seller ? `<p class="text-ink">${seller}</p>` : ''}
               <p>${esc(sourceLabel(l.source))}${l.country ? `, ${esc(l.country)}` : ''}</p>
-              ${url ? `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer" class="mt-1 inline-block font-medium text-navy underline-offset-4 hover:underline">Atvērt sludinājumu</a>` : ''}
+              <button type="button" ${openAttr(l)} class="mt-1 font-medium text-navy underline-offset-4 hover:underline">Skatīt sīkāk</button>
             </div>
           </div>
         </div>
       </div>
     </li>`;
 }
+
+// ---------- Sludinājuma pilnais skats ----------
+
+let lastFocus = null;
+let gallery = { photos: [], i: 0 };
+
+function showPhoto(i) {
+  const n = gallery.photos.length;
+  if (!n) return;
+  gallery.i = (i + n) % n;
+  const img = $('#carMainPhoto');
+  img.src = gallery.photos[gallery.i];
+  $('#carPhotoCount').textContent = `${gallery.i + 1} / ${n}`;
+  $$('#carThumbs button').forEach((b, k) => b.classList.toggle('ring-2', k === gallery.i));
+}
+
+function specRows(l) {
+  const d = l.details;
+  const rows = [
+    ['Gads', l.year],
+    ['Nobraukums', l.mileage != null ? `${fmt.format(l.mileage)} km` : null],
+    ['Degviela', l.fuel],
+    ['Virsbūve', l.body],
+    ['Dzinējs', l.engine ? `${l.engine} l` : null],
+    ...Object.entries(d.specs || {}),
+    ['Vietne', sourceLabel(l.source) + (l.country ? `, ${l.country}` : '')],
+  ];
+  const seen = new Set();
+  return rows.filter(([k, v]) => v && !seen.has(k.toLowerCase()) && seen.add(k.toLowerCase()))
+    .map(([k, v]) => `<div class="flex justify-between gap-4 border-b border-hair py-2.5 text-sm"><dt class="text-sub">${esc(k)}</dt><dd class="text-right font-medium">${esc(v)}</dd></div>`).join('');
+}
+
+function renderCar(l) {
+  const d = l.details;
+  const url = safeUrl(l.url);
+  gallery = { photos: (d.photos || []).map(safeUrl).filter(Boolean), i: 0 };
+  const s = d.seller || {};
+  const sellerTitle = s.type === 'dīleris' ? (s.name || 'Dīleris') : s.type === 'privātpersona' ? 'Privātpersona' : 'Pārdevējs';
+  const sellerKind = s.type === 'dīleris' && s.name ? 'Dīleris' : '';
+
+  return `
+    <div class="flex items-start justify-between gap-4 border-b border-hair px-5 py-4 sm:px-6">
+      <div class="min-w-0">
+        <h2 id="carTitle" class="truncate text-xl font-semibold tracking-tight sm:text-2xl">${esc(l.make)} ${esc(l.model)} <span class="font-normal text-sub">${esc(l.year)}</span></h2>
+        <p class="truncate text-sm text-sub">${esc(l.title)}</p>
+      </div>
+      <button type="button" data-close-car class="flex-none rounded-md p-1.5 text-sub hover:bg-wash" aria-label="Aizvērt">
+        <svg viewBox="0 0 24 24" class="size-6" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M6 6l12 12M18 6L6 18"/></svg>
+      </button>
+    </div>
+
+    <div class="grid gap-6 p-5 sm:p-6 lg:grid-cols-[1fr_320px]">
+      <div class="order-1 min-w-0 lg:col-start-1 lg:row-start-1">
+          <div class="relative overflow-hidden rounded-xl bg-wash">
+            ${gallery.photos.length ? `
+              <img id="carMainPhoto" alt="${esc(l.make)} ${esc(l.model)}" referrerpolicy="no-referrer" class="aspect-[4/3] w-full object-cover">
+              ${gallery.photos.length > 1 ? `
+                <button type="button" data-photo="-1" class="absolute left-3 top-1/2 grid size-10 -translate-y-1/2 place-items-center rounded-full bg-paper/90 shadow hover:bg-paper" aria-label="Iepriekšējā bilde">
+                  <svg viewBox="0 0 20 20" class="size-5" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 4l-6 6 6 6"/></svg></button>
+                <button type="button" data-photo="1" class="absolute right-3 top-1/2 grid size-10 -translate-y-1/2 place-items-center rounded-full bg-paper/90 shadow hover:bg-paper" aria-label="Nākamā bilde">
+                  <svg viewBox="0 0 20 20" class="size-5" fill="none" stroke="currentColor" stroke-width="2"><path d="M8 4l6 6-6 6"/></svg></button>` : ''}
+              <span id="carPhotoCount" class="absolute bottom-3 right-3 rounded bg-ink/70 px-2 py-0.5 text-xs text-paper"></span>`
+            : `<div class="grid aspect-[4/3] place-items-center">${CAR_SVG}<p class="absolute bottom-4 text-sm text-faint">Bildes nav pieejamas</p></div>`}
+          </div>
+          ${gallery.photos.length > 1 ? `
+            <div id="carThumbs" class="mt-2 flex gap-2 overflow-x-auto pb-1">
+              ${gallery.photos.map((p, k) => `<button type="button" data-thumb="${k}" class="flex-none overflow-hidden rounded-md ring-navy ring-offset-2"><img src="${esc(p)}" alt="" loading="lazy" referrerpolicy="no-referrer" class="h-14 w-20 object-cover"></button>`).join('')}
+            </div>` : ''}
+      </div>
+
+      <div class="order-3 min-w-0 space-y-6 lg:col-start-1 lg:row-start-2">
+        ${l.detailsError ? `<p class="rounded-lg bg-above/10 px-4 py-3 text-sm text-above">Pilnās detaļas no ${esc(sourceLabel(l.source))} neizdevās ielādēt (${esc(l.detailsError)}). Rādām saraksta datus.</p>` : ''}
+
+        <section>
+          <h3 class="font-semibold">Tehniskie dati</h3>
+          <dl class="mt-2">${specRows(l)}</dl>
+        </section>
+
+        ${d.description ? `
+          <section>
+            <h3 class="font-semibold">Apraksts</h3>
+            <p class="mt-2 max-w-[70ch] whitespace-pre-line text-sm leading-relaxed text-sub">${esc(d.description)}</p>
+          </section>` : ''}
+      </div>
+
+      <aside class="order-2 space-y-4 lg:col-start-2 lg:row-span-2 lg:row-start-1 lg:self-start">
+        <div class="rounded-xl border border-hair p-5">
+          <p class="text-3xl font-semibold tracking-tight">${eur(l.price)}</p>
+          <div class="mt-2">${dealBadge(l, 'lg')}</div>
+          ${l.marketPrice ? `<p class="mt-3 text-sm text-sub">Līdzīgi auto (${l.comparables}) parasti maksā ap <span class="font-medium text-ink">${eur(l.marketPrice)}</span>.</p>` : ''}
+          <div class="mt-4">${gauge(l)}</div>
+          ${url ? `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer" class="btn-dark mt-5 w-full">Atvērt sludinājumu ${esc(sourceLabel(l.source))}</a>` : ''}
+        </div>
+
+        <div class="rounded-xl border border-hair p-5">
+          <p class="text-sm text-sub">Pārdevējs</p>
+          <div class="mt-2 flex items-center gap-3">
+            <span class="grid size-11 flex-none place-items-center rounded-full bg-wash text-sub" aria-hidden="true">
+              ${s.type === 'dīleris'
+                ? '<svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M3 21h18M5 21V9l7-5 7 5v12M9 21v-6h6v6"/></svg>'
+                : '<svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="1.75"><circle cx="12" cy="8" r="4"/><path d="M4 21c1.5-4 4.5-6 8-6s6.5 2 8 6"/></svg>'}
+            </span>
+            <div class="min-w-0">
+              <p class="truncate font-medium">${esc(sellerTitle)}</p>
+              <p class="text-sm text-sub">${[sellerKind, s.city].filter(Boolean).map(esc).join(', ') || 'Atrašanās vieta nav norādīta'}</p>
+            </div>
+          </div>
+          <p class="mt-4 text-xs leading-relaxed text-faint">Tālruni un kontaktus DealRadar nesaglabā. Sazinies ar pārdevēju oriģinālajā sludinājumā.</p>
+        </div>
+      </aside>
+    </div>
+
+    ${l.similar?.length ? `
+      <section class="border-t border-hair p-5 sm:p-6">
+        <h3 class="font-semibold">Līdzīgi auto</h3>
+        <div class="mt-3 grid gap-3 sm:grid-cols-2">${l.similar.map(mini).join('')}</div>
+      </section>` : ''}`;
+}
+
+async function openCar(key) {
+  const [source, id] = key.split('|');
+  const modal = $('#carModal');
+  const box = $('#carBox');
+  if (modal.hidden) lastFocus = document.activeElement;
+  modal.hidden = false;
+  document.body.style.overflow = 'hidden';
+  box.innerHTML = `<div class="p-10 text-center text-sub">Ielādē sludinājumu…</div>`;
+  modal.scrollTop = 0;
+  try {
+    const l = await api(`/api/listing?source=${encodeURIComponent(source)}&id=${encodeURIComponent(id)}`);
+    box.innerHTML = renderCar(l);
+    showPhoto(0);
+    $('[data-close-car]', box).focus();
+  } catch (err) {
+    box.innerHTML = `<div class="flex justify-between gap-4 p-6"><p class="text-above">${esc(err.message)}</p><button type="button" data-close-car class="text-sub underline">Aizvērt</button></div>`;
+  }
+}
+
+function closeCar() {
+  $('#carModal').hidden = true;
+  document.body.style.overflow = '';
+  lastFocus?.focus?.();
+}
+
+document.addEventListener('click', (e) => {
+  const open = e.target.closest('[data-open]');
+  if (open) { e.preventDefault(); openCar(open.dataset.open); return; }
+  if (e.target.closest('[data-close-car]') || e.target.id === 'carModal') { closeCar(); return; }
+  const step = e.target.closest('[data-photo]');
+  if (step) { showPhoto(gallery.i + Number(step.dataset.photo)); return; }
+  const thumb = e.target.closest('[data-thumb]');
+  if (thumb) showPhoto(Number(thumb.dataset.thumb));
+});
+document.addEventListener('keydown', (e) => {
+  if ($('#carModal').hidden) return;
+  if (e.key === 'Escape') closeCar();
+  if (e.key === 'ArrowRight') showPhoto(gallery.i + 1);
+  if (e.key === 'ArrowLeft') showPhoto(gallery.i - 1);
+});
 
 // ---------- Dati ----------
 

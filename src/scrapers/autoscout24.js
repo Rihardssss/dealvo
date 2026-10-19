@@ -8,6 +8,14 @@ const cheerio = require('cheerio');
 const { fetchHtml, sleep, digits, yearFrom, fuelLv } = require('./http');
 const { normalizeMake, bodyLv } = require('../makes');
 
+// Pārdevējs: tips + dīlera nosaukums + pilsēta (privātpersonu vārdus neglabājam)
+function sellerFrom(seller = {}, location = {}) {
+  const raw = String(seller.type ?? seller.sellerType ?? '').toLowerCase();
+  const type = /dealer|händler|company/.test(raw) ? 'dīleris' : /private|privat/.test(raw) ? 'privātpersona' : null;
+  const city = [location.zip, location.city].filter(Boolean).join(' ').trim() || null;
+  return { type, name: type === 'dīleris' ? (seller.companyName || null) : null, city };
+}
+
 const BASE = 'https://www.autoscout24.com';
 const DELAY_MS = 2000;
 
@@ -51,6 +59,7 @@ function fromNextData(json) {
       image: typeof img === 'string' ? img : img?.url ?? null,
       thumb: typeof img === 'string' ? img : img?.url ?? null,
       country: l.location?.countryCode || 'DE',
+      seller: sellerFrom(l.seller, l.location),
     };
   });
 }

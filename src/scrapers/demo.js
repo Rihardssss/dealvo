@@ -14,6 +14,10 @@ const MODELS = {
 };
 const FUELS = ['dīzelis', 'benzīns', 'dīzelis', 'hibrīds'];
 const SITES = ['demo-auto.lv', 'demo-mašīnas.lv'];
+// Izdomāti dīleri un pilsētas (demo dati nav saistīti ar reāliem uzņēmumiem)
+const DEALERS = ['Demo Auto Centrs', 'Paraugs Motors', 'Testa Auto Nams'];
+const CITIES = ['Rīga', 'Rīga', 'Rīga', 'Jelgava', 'Liepāja', 'Daugavpils', 'Valmiera', 'Ventspils', 'Jūrmala', 'Ogre'];
+const COLORS = ['melna', 'pelēka', 'sudraba', 'balta', 'zila', 'sarkana'];
 
 // Vienkāršs deterministisks ģenerators (mulberry32)
 function rng(seed) {
@@ -49,7 +53,7 @@ function generate(count = 400, seed = 42) {
     const site = pick(SITES);
     out.push({
       source: site,
-      externalId: `demo-${seed}-${i}`,
+      externalId: `demo2-${seed}-${i}`,
       url: null,
       title: `${make} ${model} ${carYear}, ${pick(['labā stāvoklī', 'servisa vēsture', 'bez ieguldījumiem', 'tikko no Vācijas', 'viens īpašnieks'])}`,
       make,
@@ -60,6 +64,11 @@ function generate(count = 400, seed = 42) {
       mileage,
       price,
       image: null,
+      gearbox: rand() < 0.55 ? 'automāts' : 'manuāla',
+      color: pick(COLORS),
+      seller: rand() < 0.4
+        ? { type: 'dīleris', name: pick(DEALERS), city: pick(CITIES) }
+        : { type: 'privātpersona', name: null, city: pick(CITIES) },
     });
   }
   return out;

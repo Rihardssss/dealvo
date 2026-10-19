@@ -17,6 +17,8 @@ Labākie piedāvājumi ir saraksta augšā.
 ## Funkcijas
 - **3 īsti avoti** — ss.lv (LV), AutoScout24 (DE) un mobile.de (DE); skenē paralēli, viena avota kļūda neaptur pārējos.
 - **Auto bildes** — tiek nolasītas no katras vietnes; ja bildes nav, rāda neitrālu siluetu.
+- **Sludinājuma pilnais skats** — nospiežot uz auto: bilžu galerija, tehniskie dati (ātrumkārba, krāsa u.c.), apraksts, cenu salīdzinājums un līdzīgi auto. Detaļas ielādē no oriģinālās lapas tikai tad, kad auto atver, un saglabā uz 24 h.
+- **Pārdevējs** — dīleris (ar uzņēmuma nosaukumu) vai privātpersona, un pilsēta. Tālruņus un privātpersonu vārdus DealRadar apzināti nesaglabā (arī aprakstos tālruņi tiek aizstāti); lai sazinātos, lietotājs atver oriģinālo sludinājumu.
 - **AI asistents** — raksti parastā valodā ("dīzeļa universālis līdz 6000 € pēc 2012"). Ar `ANTHROPIC_API_KEY` to apstrādā Claude, kas pats izsauc meklēšanas rīku mūsu datubāzē un neko neizdomā; bez atslēgas strādā latviešu valodas parsētājs.
 - **Deal score** — katrs auto salīdzināts ar līdzīgiem no VISIEM avotiem (arī Latvija pret Vāciju); marku/modeļu nosaukumi tiek normalizēti ("Mercedes-Benz" = "Mercedes", "320d" = "320").
 - **Cenu skala** — redzams, kur cena atrodas starp līdzīgu auto lētāko un dārgāko.
@@ -57,6 +59,7 @@ src/server.js      REST API
 src/scrapers/      sslv.js, autoscout24.js, mobilede.js, demo.js; index.js = avotu reģistrs
 src/assistant.js   AI asistents (Claude + bezsaistes režīms)
 src/search.js      kopīga meklēšana (API un AI)
+src/listing-details.js + src/scrapers/details.js  sludinājuma detaļas un pārdevējs
 src/makes.js       marku ID katrā avotā + nosaukumu normalizēšana
 src/deals.js       deal algoritms
 src/validate.js    ievades validācija
@@ -73,6 +76,8 @@ Jaunu vietni pievieno, uzrakstot jaunu failu `src/scrapers/`, kas atgriež sludi
 | GET | `/api/makes` | atļautās markas |
 | POST | `/api/scrape` `{make, pages, sources}` | skenē vietnes (`sslv`, `autoscout24`, `mobilede`) |
 | POST | `/api/assistant` `{question}` | AI asistents |
+| GET | `/api/listing?source=&id=` | viena sludinājuma pilnais skats (bildes, dati, pārdevējs, līdzīgie) |
+| GET | `/api/models?make=` | markas modeļi ar sludinājumu skaitu |
 | POST | `/api/demo` | ielādē demo datus |
 | DELETE | `/api/listings` | notīra datus |
 
@@ -88,11 +93,12 @@ Jaunu vietni pievieno, uzrakstot jaunu failu `src/scrapers/`, kas atgriež sludi
 - Visi parametri tiek validēti (tips, robežas, simboli); kļūdas atgriež `400`, nevis avāriju.
 - Viss teksts no sludinājumiem tiek "escape"-ots → nav XSS (pārbaudīts ar `<script>` sludinājuma nosaukumā).
 - Saites atveras tikai, ja tās ir `https://`, ar `rel="noopener noreferrer"`.
+- Detaļu ielāde drīkst iet tikai uz ss.lv, AutoScout24 un mobile.de adresēm (SSRF aizsardzība, pārbaudīts testos).
 - Skenēt/dzēst var tikai ar `ADMIN_TOKEN` (salīdzināts ar `timingSafeEqual`); limits 120 pieprasījumi minūtē no IP.
 - Vienlaikus var notikt tikai viena skrāpēšana; 1,5 s pauze starp lapām, lai nenoslogotu ss.lv.
 
 ## Testi
-Automātiskie: `npm test` (29 testi). Manuālie scenāriji: skat. [TESTI.md](TESTI.md).
+Automātiskie: `npm test` (35 testi). Manuālie scenāriji: skat. [TESTI.md](TESTI.md).
 
 ## Ierobežojumi un nākotnes plāni
 - Ja kāda vietne maina lapas struktūru, parsētājs jāatjauno (katram ir tests ar paraugu).
