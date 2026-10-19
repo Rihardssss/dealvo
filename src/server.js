@@ -152,7 +152,7 @@ app.use((err, req, res, next) => {
 
 const PORT = Number(process.env.PORT) || 3000;
 if (require.main === module) {
-  app.listen(PORT, () => console.log(`DealRadar darbojas: http://localhost:${PORT}`));
+  app.listen(PORT, () => console.log(`Dealvo darbojas: http://localhost:${PORT}`));
 }
 
 module.exports = app;

@@ -5,7 +5,7 @@ const os = require('os');
 const fs = require('fs');
 const path = require('path');
 
-process.env.DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'dealradar-ai-'));
+process.env.DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'dealvo-ai-'));
 process.env.ANTHROPIC_API_KEY = 'test-key';
 const db = require('../src/db');
 const demo = require('../src/scrapers/demo');

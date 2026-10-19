@@ -4,7 +4,7 @@ const os = require('os');
 const fs = require('fs');
 const path = require('path');
 
-process.env.DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'dealradar-admin-'));
+process.env.DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'dealvo-admin-'));
 process.env.ADMIN_TOKEN = 'slepena-parole';
 const app = require('../src/server');
 

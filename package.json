@@ -1,7 +1,7 @@
 {
-  "name": "dealradar",
+  "name": "dealvo",
   "version": "1.0.0",
-  "description": "DealRadar — savāc auto sludinājumus no vairākiem avotiem un atrod labākos piedāvājumus",
+  "description": "Dealvo — savāc auto sludinājumus no vairākiem avotiem un atrod labākos piedāvājumus",
   "main": "src/server.js",
   "scripts": {
     "build:css": "tailwindcss -i src/styles.css -o public/app.css --minify",

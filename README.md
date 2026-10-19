@@ -1,16 +1,16 @@
-# DealRadar 🚗📡
+# Dealvo 🚗📡
 
 **Auto sludinājumu agregators ar AI asistentu: ss.lv + AutoScout24 + mobile.de vienuviet, katrs auto salīdzināts ar tirgu.**
 Victoria PX projektu nedēļa, 19.–23.10.2026. Autors: Rihards Indars (PX23).
 
-🌐 **https://dealradar.riciboy.eu** (publicēšana: [DEPLOY.md](DEPLOY.md))
+🌐 **https://dealvo.riciboy.eu** (publicēšana: [DEPLOY.md](DEPLOY.md))
 
 ## Problēma
 Lai atrastu izdevīgu auto, cilvēkam jāpārlūko vairākas vietnes un pašam jāmin, vai cena ir laba.
 ss.lv nerāda, vai konkrētā cena ir zem vai virs tirgus.
 
 ## Risinājums
-DealRadar savāc sludinājumus no vairākiem avotiem vienā datubāzē, salīdzina katru auto ar līdzīgiem
+Dealvo savāc sludinājumus no vairākiem avotiem vienā datubāzē, salīdzina katru auto ar līdzīgiem
 (marka, modelis, gads, nobraukums) un parāda, **cik % tas ir lētāks vai dārgāks par tirgu**.
 Labākie piedāvājumi ir saraksta augšā.
 
@@ -18,7 +18,7 @@ Labākie piedāvājumi ir saraksta augšā.
 - **3 īsti avoti** — ss.lv (LV), AutoScout24 (DE) un mobile.de (DE); skenē paralēli, viena avota kļūda neaptur pārējos.
 - **Auto bildes** — tiek nolasītas no katras vietnes; ja bildes nav, rāda neitrālu siluetu.
 - **Sludinājuma pilnais skats** — nospiežot uz auto: bilžu galerija, tehniskie dati (ātrumkārba, krāsa u.c.), apraksts, cenu salīdzinājums un līdzīgi auto. Detaļas ielādē no oriģinālās lapas tikai tad, kad auto atver, un saglabā uz 24 h.
-- **Pārdevējs** — dīleris (ar uzņēmuma nosaukumu) vai privātpersona, un pilsēta. Tālruņus un privātpersonu vārdus DealRadar apzināti nesaglabā (arī aprakstos tālruņi tiek aizstāti); lai sazinātos, lietotājs atver oriģinālo sludinājumu.
+- **Pārdevējs** — dīleris (ar uzņēmuma nosaukumu) vai privātpersona, un pilsēta. Tālruņus un privātpersonu vārdus Dealvo apzināti nesaglabā (arī aprakstos tālruņi tiek aizstāti); lai sazinātos, lietotājs atver oriģinālo sludinājumu.
 - **AI asistents** — raksti parastā valodā ("dīzeļa universālis līdz 6000 € pēc 2012"). Ar `ANTHROPIC_API_KEY` to apstrādā Claude, kas pats izsauc meklēšanas rīku mūsu datubāzē un neko neizdomā; bez atslēgas strādā latviešu valodas parsētājs.
 - **Deal score** — katrs auto salīdzināts ar līdzīgiem no VISIEM avotiem (arī Latvija pret Vāciju); marku/modeļu nosaukumi tiek normalizēti ("Mercedes-Benz" = "Mercedes", "320d" = "320").
 - **Cenu skala** — redzams, kur cena atrodas starp līdzīgu auto lētāko un dārgāko.
@@ -48,7 +48,7 @@ npm test         # palaiž automātiskos testus
 | Frontend | HTML + JS bez ietvara | Ātri ielādējas, viegli saprotams kods |
 | Dizains | Tailwind CSS v4 (CLI), minimāls stils | Dizaina sistēma (`@theme`) vienā failā; krāsa tikai nozīmei: zaļš = zem tirgus, oranžs = virs |
 | Fonts | Geist, hostēts lokāli | Ar latviešu burtiem, strādā bez interneta |
-| Hostings | Cloudflare Tunnel → dealradar.riciboy.eu | Bezmaksas HTTPS, nav jāatver porti |
+| Hostings | Cloudflare Tunnel → dealvo.riciboy.eu | Bezmaksas HTTPS, nav jāatver porti |
 | Testi | `node:test` (iebūvēts) | Nav papildu atkarību |
 
 ## Arhitektūra

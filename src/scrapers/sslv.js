@@ -5,7 +5,7 @@
 const cheerio = require('cheerio');
 
 const BASE = 'https://www.ss.lv';
-const USER_AGENT = 'Mozilla/5.0 (DealRadar skolas projekts; +https://github.com/Rihardssss)';
+const USER_AGENT = 'Mozilla/5.0 (Dealvo skolas projekts; +https://github.com/Rihardssss)';
 const DELAY_MS = 1500; // pauze starp lapām, lai nenoslogotu serveri
 
 // "12,300  €" -> 12300 ; "maiņai" / "pērku" -> null

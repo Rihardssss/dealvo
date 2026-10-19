@@ -1,4 +1,4 @@
-// DealRadar frontend — bez ietvara, tikai fetch + DOM. Stils: Tailwind (src/styles.css).
+// Dealvo frontend — bez ietvara, tikai fetch + DOM. Stils: Tailwind (src/styles.css).
 const $ = (sel, root = document) => root.querySelector(sel);
 const $$ = (sel, root = document) => [...root.querySelectorAll(sel)];
 const fmt = new Intl.NumberFormat('lv-LV');
@@ -268,7 +268,7 @@ function renderCar(l) {
               <p class="text-sm text-sub">${[sellerKind, s.city].filter(Boolean).map(esc).join(', ') || 'Atrašanās vieta nav norādīta'}</p>
             </div>
           </div>
-          <p class="mt-4 text-xs leading-relaxed text-faint">Tālruni un kontaktus DealRadar nesaglabā. Sazinies ar pārdevēju oriģinālajā sludinājumā.</p>
+          <p class="mt-4 text-xs leading-relaxed text-faint">Tālruni un kontaktus Dealvo nesaglabā. Sazinies ar pārdevēju oriģinālajā sludinājumā.</p>
         </div>
       </aside>
     </div>
@@ -393,7 +393,7 @@ async function askAssistant(question) {
         <span class="mt-0.5 grid size-7 flex-none place-items-center rounded-full bg-navy text-xs font-semibold text-paper">AI</span>
         <div class="min-w-0">
           <p class="max-w-[75ch] leading-relaxed">${esc(r.answer).replace(/\n/g, '<br>')}</p>
-          <p class="mt-1 text-xs text-faint">${r.mode === 'claude' ? 'Atbildi sagatavoja Claude, izmantojot tikai DealRadar datus.' : 'Bezsaistes režīms: filtri nolasīti no tava teksta.'}</p>
+          <p class="mt-1 text-xs text-faint">${r.mode === 'claude' ? 'Atbildi sagatavoja Claude, izmantojot tikai Dealvo datus.' : 'Bezsaistes režīms: filtri nolasīti no tava teksta.'}</p>
         </div>
       </div>
       ${r.items.length ? `<div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">${r.items.slice(0, 3).map(mini).join('')}</div>` : ''}`;

@@ -5,7 +5,7 @@ const fs = require('fs');
 const path = require('path');
 
 // Testi raksta pagaidu mapē, nevis īstajos datos
-process.env.DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'dealradar-'));
+process.env.DATA_DIR = fs.mkdtempSync(path.join(os.tmpdir(), 'dealvo-'));
 const app = require('../src/server');
 
 let server, base;
