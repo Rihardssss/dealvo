@@ -1,9 +1,12 @@
 const express = require('express');
 const path = require('path');
 const db = require('./db');
-const sslv = require('./scrapers/sslv');
 const demo = require('./scrapers/demo');
+const { SOURCES, scrapeMake } = require('./scrapers');
 const { scoreListings } = require('./deals');
+const { searchListings } = require('./search');
+const assistant = require('./assistant');
+const { MAKE_TABLE } = require('./makes');
 const { MAKES, validateScrapeRequest, validateListingQuery } = require('./validate');
 
 const app = express();
@@ -45,7 +48,11 @@ app.use('/api', (req, res, next) => {
   next();
 });
 
-app.get('/api/config', (req, res) => res.json({ adminRequired: Boolean(ADMIN_TOKEN) }));
+app.get('/api/config', (req, res) => res.json({
+  adminRequired: Boolean(ADMIN_TOKEN),
+  assistant: process.env.ANTHROPIC_API_KEY ? 'claude' : 'offline',
+  sources: Object.entries(SOURCES).map(([key, s]) => ({ key, label: s.label, country: s.country })),
+}));
 
 app.get('/api/makes', (req, res) => {
   res.json(Object.entries(MAKES).map(([slug, name]) => ({ slug, name })));
@@ -54,26 +61,20 @@ app.get('/api/makes', (req, res) => {
 app.get('/api/listings', (req, res) => {
   const v = validateListingQuery(req.query);
   if (!v.ok) return res.status(400).json({ errors: v.errors });
-  const f = v.value;
+  res.json(searchListings(v.value));
+});
 
-  let items = scoreListings(db.all());
-  if (f.make) items = items.filter((l) => l.make.toLowerCase() === MAKES[f.make].toLowerCase());
-  if (f.model) items = items.filter((l) => (l.model || '').toLowerCase().includes(f.model.toLowerCase()));
-  if (f.minYear) items = items.filter((l) => l.year >= f.minYear);
-  if (f.maxYear) items = items.filter((l) => l.year <= f.maxYear);
-  if (f.maxPrice) items = items.filter((l) => l.price <= f.maxPrice);
-  if (f.maxMileage) items = items.filter((l) => l.mileage != null && l.mileage <= f.maxMileage);
-
-  const sorters = {
-    deal: (a, b) => (b.dealScore ?? -Infinity) - (a.dealScore ?? -Infinity),
-    price: (a, b) => a.price - b.price,
-    year: (a, b) => b.year - a.year,
-    mileage: (a, b) => (a.mileage ?? Infinity) - (b.mileage ?? Infinity),
-    newest: (a, b) => String(b.firstSeen).localeCompare(String(a.firstSeen)),
-  };
-  items.sort(sorters[f.sort || 'deal']);
-
-  res.json({ total: items.length, items: items.slice(0, f.limit || 60) });
+// AI asistents — atsevišķs, stingrāks limits (katrs pieprasījums var maksāt API naudu)
+const askHits = new Map();
+app.post('/api/assistant', async (req, res) => {
+  const err = assistant.validateQuestion(req.body?.question);
+  if (err) return res.status(400).json({ errors: [err] });
+  const ip = req.get('cf-connecting-ip') || req.ip;
+  const now = Date.now();
+  const recent = (askHits.get(ip) || []).filter((t) => now - t < 60_000);
+  if (recent.length >= 10) return res.status(429).json({ errors: ['Pārāk daudz jautājumu, pagaidi minūti'] });
+  askHits.set(ip, [...recent, now]);
+  res.json(await assistant.ask(req.body.question));
 });
 
 app.get('/api/stats', (req, res) => {
@@ -96,12 +97,13 @@ app.post('/api/scrape', requireAdmin, async (req, res) => {
 
   scrapeInProgress = true;
   try {
-    const items = await sslv.fetchMake(v.value.make, MAKES[v.value.make], v.value.pages);
+    const { make, pages, sources } = v.value;
+    const { items, report } = await scrapeMake(MAKE_TABLE[make], sources, pages);
     const result = db.upsert(items);
-    res.json({ source: 'ss.lv', found: items.length, ...result });
+    res.json({ found: items.length, ...result, report });
   } catch (err) {
     console.error(err);
-    res.status(502).json({ errors: [`Neizdevās nolasīt ss.lv: ${err.message}`] });
+    res.status(502).json({ errors: [`Neizdevās nolasīt datus: ${err.message}`] });
   } finally {
     scrapeInProgress = false;
   }

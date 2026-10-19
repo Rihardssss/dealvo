@@ -1,6 +1,6 @@
 # Pārbaudes scenāriji
 
-Automātiskie testi: `npm test` → 15/15 izdodas (ss.lv parsētājs, deal algoritms, API, admin aizsardzība).
+Automātiskie testi: `npm test` → 26/26 izdodas (3 vietņu parsētāji, deal algoritms, API, AI asistents, admin aizsardzība).
 
 ## 1. Lietotājs atrod labāko dealu
 | | |
@@ -43,3 +43,17 @@ Automātiskie testi: `npm test` → 15/15 izdodas (ss.lv parsētājs, deal algor
 | Soļi | Sludinājums ar nosaukumu `<script>alert(1)</script>` |
 | Sagaidāmais | Teksts parādās kā teksts, kods neizpildās |
 | Rezultāts | ✅ Izdodas |
+
+## 7. AI asistents
+| | |
+|---|---|
+| Soļi | Ieraksta "dīzeļa VW līdz 8000 eur pēc 2012" → "Jautāt" |
+| Sagaidāmais | Atbilde latviski, 3 ieteiktie auto; meklēšanas filtri automātiski aizpildās (VW, dīzelis, 8000, 2013) |
+| Rezultāts | ✅ Izdodas (bezsaistes režīmā un ar viltotu Claude API testā) |
+
+## 8. Vairāki avoti vienlaikus
+| | |
+|---|---|
+| Soļi | "Atjaunot datus" → atzīmē ss.lv, AutoScout24, mobile.de → BMW → "Skenēt" |
+| Sagaidāmais | Katrai vietnei atsevišķs rezultāts; ja kāda bloķē, tā tiek parādīta sarkanā, pārējās dati saglabājas |
+| Rezultāts | ☐ Aizpildīt prezentācijas dienā |

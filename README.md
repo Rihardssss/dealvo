@@ -1,6 +1,6 @@
 # DealRadar 🚗📡
 
-**Auto sludinājumu agregators, kas atrod labākos piedāvājumus.**
+**Auto sludinājumu agregators ar AI asistentu: ss.lv + AutoScout24 + mobile.de vienuviet, katrs auto salīdzināts ar tirgu.**
 Victoria PX projektu nedēļa, 19.–23.10.2026. Autors: Rihards Indars (PX23).
 
 🌐 **https://dealradar.riciboy.eu** (publicēšana: [DEPLOY.md](DEPLOY.md))
@@ -15,14 +15,15 @@ DealRadar savāc sludinājumus no vairākiem avotiem vienā datubāzē, salīdzi
 Labākie piedāvājumi ir saraksta augšā.
 
 ## Funkcijas
-- **ss.lv skrāpēšana** — izvēlies marku un lapu skaitu (1–5), sistēma nolasa sludinājumus.
-- **Demo avoti** — 400 testa sludinājumi no 2 izdomātām vietnēm (darbojas bez interneta).
-- **Deal score** — cena pret līdzīgu auto mediānu; birkas *super* (≥20%), *labs* (≥10%), *tirgus*, *dārgs*.
-- **Cenu vēsture** — ja sludinājuma cena atkārtotā skenēšanā samazinās, tas tiek parādīts.
-- **Filtri un kārtošana** — marka, modelis, gads, max cena, max nobraukums.
-- **Cenu skala** — katram auto redzams, kur tā cena atrodas starp līdzīgu auto lētāko un dārgāko.
-- **Ievades validācija** — gan serverī, gan pārlūkā.
-- **Admin aizsardzība** — publiskajā versijā datus maina tikai ar `ADMIN_TOKEN`.
+- **3 īsti avoti** — ss.lv (LV), AutoScout24 (DE) un mobile.de (DE); skenē paralēli, viena avota kļūda neaptur pārējos.
+- **Auto bildes** — tiek nolasītas no katras vietnes; ja bildes nav, rāda neitrālu siluetu.
+- **AI asistents** — raksti parastā valodā ("dīzeļa universālis līdz 6000 € pēc 2012"). Ar `ANTHROPIC_API_KEY` to apstrādā Claude, kas pats izsauc meklēšanas rīku mūsu datubāzē un neko neizdomā; bez atslēgas strādā latviešu valodas parsētājs.
+- **Deal score** — katrs auto salīdzināts ar līdzīgiem no VISIEM avotiem (arī Latvija pret Vāciju); marku/modeļu nosaukumi tiek normalizēti ("Mercedes-Benz" = "Mercedes", "320d" = "320").
+- **Cenu skala** — redzams, kur cena atrodas starp līdzīgu auto lētāko un dārgāko.
+- **Cenu vēsture** — ja cena atkārtotā skenēšanā samazinās, tas tiek parādīts.
+- **Filtri** — marka, modelis, cena, gads, nobraukums, degviela, vietne, kārtošana.
+- **Demo dati** — 400 testa sludinājumi; prezentācija strādā arī bez interneta.
+- **Drošība** — validācija, XSS aizsardzība, admin parole, pieprasījumu limiti.
 
 ## Palaišana
 Vajadzīgs **Node.js 22+**.
@@ -30,6 +31,7 @@ Vajadzīgs **Node.js 22+**.
 ```bash
 npm install
 npm run seed     # ielādē demo datus (nav obligāti)
+cp .env.example .env   # pēc izvēles: ieliec ANTHROPIC_API_KEY AI asistentam
 npm start        # uzbūvē Tailwind CSS un palaiž → http://localhost:3000
 npm test         # palaiž automātiskos testus
 ```
@@ -38,7 +40,8 @@ npm test         # palaiž automātiskos testus
 | Daļa | Tehnoloģija | Kāpēc |
 |---|---|---|
 | Serveris | Node.js + Express | Viena valoda (JS) frontendā un backendā, vienkāršs REST API |
-| Skrāpēšana | `fetch` + Cheerio | ss.lv ir statisks HTML — nav vajadzīgs smags pārlūks (Puppeteer) |
+| Skrāpēšana | `fetch` + Cheerio | ss.lv ir statisks HTML; AutoScout24 un mobile.de sludinājumus iegulda lapā kā JSON — to nolasa tieši, bez smaga pārlūka |
+| AI | Claude API ar rīku izsaukšanu (tool use) | Modelis meklē tikai mūsu datos caur `search_cars` rīku, tā ievade tiek validēta kā lietotāja ievade |
 | Dati | JSON fails ar atomisku pierakstu | Prototipam pietiek, nav jāinstalē datubāze |
 | Frontend | HTML + JS bez ietvara | Ātri ielādējas, viegli saprotams kods |
 | Dizains | Tailwind CSS v4 (CLI), minimāls stils | Dizaina sistēma (`@theme`) vienā failā; krāsa tikai nozīmei: zaļš = zem tirgus, oranžs = virs |
@@ -51,7 +54,10 @@ npm test         # palaiž automātiskos testus
 public/            frontend (index.html, app.js, fonts/; app.css tiek uzbūvēts)
 src/styles.css     Tailwind ievade un dizaina sistēma
 src/server.js      REST API
-src/scrapers/      avoti: sslv.js (īsts), demo.js (testa dati)
+src/scrapers/      sslv.js, autoscout24.js, mobilede.js, demo.js; index.js = avotu reģistrs
+src/assistant.js   AI asistents (Claude + bezsaistes režīms)
+src/search.js      kopīga meklēšana (API un AI)
+src/makes.js       marku ID katrā avotā + nosaukumu normalizēšana
 src/deals.js       deal algoritms
 src/validate.js    ievades validācija
 src/db.js          datu glabāšana (data/listings.json)
@@ -65,7 +71,8 @@ Jaunu vietni pievieno, uzrakstot jaunu failu `src/scrapers/`, kas atgriež sludi
 | GET | `/api/listings?make=&model=&minYear=&maxPrice=&maxMileage=&sort=` | sludinājumi ar deal score |
 | GET | `/api/stats` | kopsavilkums |
 | GET | `/api/makes` | atļautās markas |
-| POST | `/api/scrape` `{make, pages}` | skenē ss.lv |
+| POST | `/api/scrape` `{make, pages, sources}` | skenē vietnes (`sslv`, `autoscout24`, `mobilede`) |
+| POST | `/api/assistant` `{question}` | AI asistents |
 | POST | `/api/demo` | ielādē demo datus |
 | DELETE | `/api/listings` | notīra datus |
 
@@ -85,11 +92,12 @@ Jaunu vietni pievieno, uzrakstot jaunu failu `src/scrapers/`, kas atgriež sludi
 - Vienlaikus var notikt tikai viena skrāpēšana; 1,5 s pauze starp lapām, lai nenoslogotu ss.lv.
 
 ## Testi
-Automātiskie: `npm test` (15 testi). Manuālie scenāriji: skat. [TESTI.md](TESTI.md).
+Automātiskie: `npm test` (26 testi). Manuālie scenāriji: skat. [TESTI.md](TESTI.md).
 
 ## Ierobežojumi un nākotnes plāni
-- Ja ss.lv maina HTML struktūru, parsētājs jāatjauno (tam ir tests ar paraugu).
-- Lielākas vietnes (auto24, mobile.de) aizsargā pret skrāpēšanu — tām būtu jāizmanto oficiāls API.
+- Ja kāda vietne maina lapas struktūru, parsētājs jāatjauno (katram ir tests ar paraugu).
+- **mobile.de** un daļēji **AutoScout24** izmanto bot aizsardzību, tāpēc skenēšana var tikt bloķēta. Tad lietotne parāda skaidru paziņojumu par konkrēto vietni, un pārējās turpina strādāt. Stabilam produktam būtu jāizmanto oficiālie partneru API.
+- Vācijas un Latvijas tirgus cenas atšķiras; nākotnē — atsevišķs "importa ietaupījuma" aprēķins ar transporta un reģistrācijas izmaksām.
 - Nākotnē: PostgreSQL, automātiska skenēšana ik stundu, e-pasta paziņojumi par jauniem super dealiem.
 
 ## Ieguldījums

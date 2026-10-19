@@ -13,9 +13,9 @@ Publiskajā versijā skenēt un dzēst datus drīkst tikai ar paroli.
 ```bash
 npm install
 # Windows PowerShell:
-$env:ADMIN_TOKEN="izdomā-garu-paroli"; npm start
+$env:ADMIN_TOKEN="izdomā-garu-paroli"; $env:ANTHROPIC_API_KEY="sk-ant-..."; npm start
 # macOS / Linux:
-ADMIN_TOKEN="izdomā-garu-paroli" npm start
+ADMIN_TOKEN="izdomā-garu-paroli" ANTHROPIC_API_KEY="sk-ant-..." npm start
 ```
 
 ## 2. Uzinstalē cloudflared

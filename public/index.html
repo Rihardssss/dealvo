@@ -3,96 +3,141 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>DealRadar</title>
-  <meta name="description" content="DealRadar salīdzina lietotu auto sludinājumus no vairākām vietnēm un parāda, kuri maksā mazāk nekā līdzīgi auto tirgū.">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2318181b'/><circle cx='16' cy='16' r='4' fill='%23fff'/></svg>">
+  <title>DealRadar · lietoti auto no ss.lv, AutoScout24 un mobile.de</title>
+  <meta name="description" content="Lietoti auto no vairākām vietnēm vienuviet. Katrs sludinājums salīdzināts ar tirgu, un AI asistents palīdz atrast izdevīgāko.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2313294b'/><circle cx='16' cy='16' r='4.5' fill='%23fff'/></svg>">
   <link rel="preload" href="fonts/geist-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="app.css">
 </head>
-<body class="min-h-screen bg-paper font-sans text-ink">
+<body class="min-h-screen bg-page font-sans text-ink">
 
-  <header class="border-b border-hair">
-    <div class="mx-auto flex h-14 max-w-6xl items-center justify-between px-4 sm:px-6">
-      <a href="/" class="flex items-center gap-2 font-semibold tracking-tight">
-        <span class="size-2.5 rounded-full bg-ink" aria-hidden="true"></span>
-        DealRadar
-      </a>
-      <div class="flex items-center gap-5">
-        <p id="sources" class="hidden text-sm text-faint md:block"></p>
-        <button id="openDrawer" class="btn-line h-9">Atjaunot datus</button>
+  <!-- Galvene -->
+  <header class="bg-navy text-paper">
+    <div class="mx-auto flex h-14 max-w-7xl items-center justify-between gap-6 px-4 sm:px-6">
+      <div class="flex items-center gap-8">
+        <a href="/" class="flex items-center gap-2 text-lg font-semibold tracking-tight">
+          <span class="grid size-6 place-items-center rounded-md bg-paper" aria-hidden="true"><span class="size-2.5 rounded-full bg-navy"></span></span>
+          DealRadar
+        </a>
+        <nav class="hidden gap-6 text-sm text-paper/80 md:flex">
+          <a href="#results" class="hover:text-paper">Visi auto</a>
+          <a href="#ai" class="hover:text-paper">AI asistents</a>
+          <a href="#top" class="hover:text-paper">Izdevīgākie</a>
+        </nav>
       </div>
+      <button id="openDrawer" class="rounded-md border border-paper/25 px-3 py-1.5 text-sm font-medium hover:bg-paper/10">Atjaunot datus</button>
     </div>
   </header>
 
-  <main class="mx-auto max-w-6xl px-4 sm:px-6">
-    <section class="pb-12 pt-16 md:pt-24">
-      <h1 class="max-w-[16ch] text-[clamp(2.25rem,5vw,3.5rem)] font-semibold leading-[1.05] tracking-[-0.035em]">
-        Lietoti auto, salīdzināti ar tirgu.
+  <!-- Meklēšana -->
+  <section class="bg-navy pb-10 pt-6 text-paper md:pb-14 md:pt-10">
+    <div class="mx-auto max-w-7xl px-4 sm:px-6">
+      <h1 class="text-[clamp(1.75rem,3.6vw,2.6rem)] font-semibold leading-tight tracking-[-0.03em]">
+        Lietoti auto no trim vietnēm. Katrs salīdzināts ar tirgu.
       </h1>
-      <p class="mt-5 max-w-[52ch] text-lg leading-relaxed text-sub">
-        Katrs sludinājums tiek salīdzināts ar līdzīgiem auto no vairākām vietnēm.
-        Tu redzi, cik tas ir lētāks vai dārgāks par tipisko cenu.
-      </p>
-      <dl id="stats" class="mt-10 flex flex-wrap gap-x-12 gap-y-4"></dl>
+      <p id="sourceLine" class="mt-2 text-paper/70"></p>
+
+      <div class="mt-7 rounded-xl bg-paper p-4 text-ink shadow-[0_20px_50px_-20px_rgb(0_0_0/0.5)] sm:p-6">
+        <form id="searchForm" class="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-7" autocomplete="off">
+          <label><span class="field-label">Marka</span>
+            <select name="make" id="filterMake" class="field"><option value="">Visas</option></select>
+          </label>
+          <label><span class="field-label">Modelis</span>
+            <input name="model" class="field" placeholder="Jebkurš" maxlength="40">
+          </label>
+          <label><span class="field-label">Cena līdz</span>
+            <input name="maxPrice" type="number" inputmode="numeric" min="1" step="500" class="field" placeholder="€">
+          </label>
+          <label><span class="field-label">Gads no</span>
+            <input name="minYear" type="number" inputmode="numeric" min="1950" max="2027" class="field" placeholder="Jebkurš">
+          </label>
+          <label><span class="field-label">Nobraukums līdz</span>
+            <input name="maxMileage" type="number" inputmode="numeric" min="0" step="10000" class="field" placeholder="km">
+          </label>
+          <label><span class="field-label">Degviela</span>
+            <select name="fuel" class="field">
+              <option value="">Jebkura</option><option>dīzelis</option><option>benzīns</option><option>hibrīds</option><option>elektro</option><option>gāze</option>
+            </select>
+          </label>
+          <div class="col-span-2 flex items-end md:col-span-2 lg:col-span-1">
+            <button class="btn-dark h-10 w-full" id="showBtn">Rādīt auto</button>
+          </div>
+        </form>
+
+        <!-- AI asistents -->
+        <form id="aiForm" class="mt-5 border-t border-hair pt-5" aria-labelledby="ai">
+          <label id="ai" for="aiInput" class="field-label scroll-mt-24">Vai vienkārši pastāsti AI asistentam, ko meklē</label>
+          <div class="flex gap-2">
+            <input id="aiInput" class="field" maxlength="400"
+              placeholder="Piemēram: ģimenes dīzelis līdz 7000 €, ne vecāks par 2013, ar mazu nobraukumu">
+            <button id="aiBtn" class="btn-line flex-none">Jautāt</button>
+          </div>
+          <div class="mt-2 flex flex-wrap gap-2 text-sm" id="aiExamples">
+            <button type="button" class="rounded-full bg-wash px-3 py-1 text-sub hover:text-ink">Lēts VW līdz 5000 €</button>
+            <button type="button" class="rounded-full bg-wash px-3 py-1 text-sub hover:text-ink">Hibrīds pēc 2016</button>
+            <button type="button" class="rounded-full bg-wash px-3 py-1 text-sub hover:text-ink">BMW ar mazu nobraukumu līdz 15000 €</button>
+          </div>
+        </form>
+        <div id="aiResult" class="hidden"></div>
+      </div>
+    </div>
+  </section>
+
+  <main class="mx-auto max-w-7xl px-4 sm:px-6">
+    <!-- Izdevīgākie -->
+    <section id="top" class="scroll-mt-6 py-10">
+      <div class="flex items-baseline justify-between">
+        <h2 class="text-xl font-semibold tracking-tight">Izdevīgākie šobrīd</h2>
+        <p class="hidden text-sm text-sub sm:block">Lielākā starpība pret līdzīgu auto tipisko cenu</p>
+      </div>
+      <div id="topGrid" class="-mx-4 mt-5 flex snap-x gap-4 overflow-x-auto px-4 pb-2 sm:mx-0 sm:grid sm:grid-cols-2 sm:overflow-visible sm:px-0 lg:grid-cols-4"></div>
     </section>
 
-    <section aria-labelledby="topTitle" class="border-t border-hair py-10">
-      <h2 id="topTitle" class="text-sm font-medium text-sub">Izdevīgākie šobrīd</h2>
-      <div id="top" class="mt-6 grid gap-8 md:grid-cols-3 md:gap-0 md:divide-x md:divide-hair"></div>
-    </section>
+    <!-- Rezultāti -->
+    <section id="results" class="grid scroll-mt-6 gap-6 pb-20 lg:grid-cols-[240px_1fr]">
+      <aside class="lg:sticky lg:top-6 lg:self-start">
+        <form id="sideForm" class="space-y-6 rounded-xl border border-hair bg-paper p-5">
+          <label class="block"><span class="field-label">Kārtot</span>
+            <select name="sort" class="field">
+              <option value="deal">Lielākā atlaide pret tirgu</option>
+              <option value="price">Cena: lētākie</option>
+              <option value="year">Gads: jaunākie</option>
+              <option value="mileage">Nobraukums: mazākais</option>
+              <option value="newest">Nesen pievienotie</option>
+            </select>
+          </label>
+          <fieldset>
+            <legend class="field-label">Vietne</legend>
+            <div id="sourceRadios" class="space-y-1.5 text-sm"></div>
+          </fieldset>
+          <label class="block"><span class="field-label">Gads līdz</span>
+            <input name="maxYear" type="number" inputmode="numeric" min="1950" max="2027" class="field" placeholder="Jebkurš">
+          </label>
+          <button type="button" id="resetBtn" class="text-sm text-sub underline underline-offset-4 hover:text-ink">Notīrīt visus filtrus</button>
+        </form>
+      </aside>
 
-    <section aria-labelledby="count" class="border-t border-hair pb-20 pt-10">
-      <div class="flex flex-wrap items-baseline justify-between gap-3">
-        <h2 id="count" class="text-2xl font-semibold tracking-tight"></h2>
+      <div>
+        <div class="mb-4 flex items-baseline justify-between gap-4">
+          <h2 id="count" class="text-xl font-semibold tracking-tight"></h2>
+        </div>
+        <ol id="list" class="space-y-3"></ol>
       </div>
-
-      <form id="filterForm" class="mt-6 grid grid-cols-2 gap-2 md:grid-cols-6" autocomplete="off">
-        <label><span class="sr-only">Marka</span>
-          <select name="make" id="filterMake" class="field"><option value="">Visas markas</option></select>
-        </label>
-        <label><span class="sr-only">Modelis</span>
-          <input name="model" class="field" placeholder="Modelis" maxlength="40">
-        </label>
-        <label><span class="sr-only">Gads no</span>
-          <input name="minYear" type="number" inputmode="numeric" min="1950" max="2027" class="field" placeholder="Gads no">
-        </label>
-        <label><span class="sr-only">Cena līdz</span>
-          <input name="maxPrice" type="number" inputmode="numeric" min="1" step="100" class="field" placeholder="Cena līdz, €">
-        </label>
-        <label><span class="sr-only">Nobraukums līdz</span>
-          <input name="maxMileage" type="number" inputmode="numeric" min="0" step="5000" class="field" placeholder="Nobraukums līdz, km">
-        </label>
-        <label><span class="sr-only">Kārtot</span>
-          <select name="sort" class="field">
-            <option value="deal">Lielākā atlaide</option>
-            <option value="price">Lētākie</option>
-            <option value="year">Jaunākie</option>
-            <option value="mileage">Mazākais nobraukums</option>
-          </select>
-        </label>
-      </form>
-
-      <div class="mt-8 hidden grid-cols-[minmax(0,1.4fr)_minmax(0,1.3fr)_120px_100px_64px] gap-6 border-b border-hair pb-3 text-sm text-faint md:grid">
-        <span>Auto</span>
-        <span>Cena starp līdzīgiem auto</span>
-        <span class="text-right">Cena</span>
-        <span class="text-right">Pret tirgu</span>
-        <span></span>
-      </div>
-      <ol id="list" class="divide-y divide-hair border-b border-hair md:border-t-0"></ol>
     </section>
   </main>
 
-  <footer class="border-t border-hair">
-    <p class="mx-auto max-w-6xl px-4 py-8 text-sm text-faint sm:px-6">
-      DealRadar ir skolas projekts (Victoria, PX projektu nedēļa 2026). Cenas tiek salīdzinātas automātiski un nav finanšu padoms.
-    </p>
+  <footer class="border-t border-hair bg-paper">
+    <div class="mx-auto max-w-7xl px-4 py-8 text-sm text-sub sm:px-6">
+      <p class="font-medium text-ink">DealRadar</p>
+      <p class="mt-1 max-w-[70ch]">Skolas projekts (Victoria, PX projektu nedēļa 2026). Sludinājumi pieder to autoriem un vietnēm,
+        no kurām tie nolasīti; katra kartīte ved uz oriģinālo sludinājumu. Cenu salīdzinājums ir automātisks un nav finanšu padoms.</p>
+    </div>
   </footer>
 
   <!-- Datu atjaunošanas panelis -->
   <div id="drawer" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true" aria-labelledby="drawerTitle">
-    <div class="absolute inset-0 bg-ink/20" data-close></div>
-    <aside class="animate-drawer absolute right-0 top-0 flex h-full w-full max-w-md flex-col border-l border-hair bg-paper">
+    <div class="absolute inset-0 bg-ink/30" data-close></div>
+    <aside class="animate-drawer absolute right-0 top-0 flex h-full w-full max-w-md flex-col bg-paper">
       <div class="flex h-14 items-center justify-between border-b border-hair px-6">
         <h2 id="drawerTitle" class="font-semibold">Atjaunot datus</h2>
         <button class="rounded-md p-1.5 text-sub hover:bg-wash" data-close aria-label="Aizvērt">
@@ -108,16 +153,18 @@
 
         <form id="scrapeForm" class="space-y-4">
           <div>
-            <h3 class="font-medium">Skenēt ss.lv</h3>
-            <p class="mt-1 text-sm text-sub">Nolasa jaunākos pārdošanas sludinājumus izvēlētajai markai. Viena lapa ir ap 30 auto.</p>
+            <h3 class="font-medium">Skenēt vietnes</h3>
+            <p class="mt-1 text-sm text-sub">Nolasa jaunākos sludinājumus izvēlētajai markai. Vietnes tiek skenētas paralēli.</p>
           </div>
+          <fieldset id="scrapeSources" class="space-y-1.5 text-sm"></fieldset>
           <div class="grid grid-cols-[1fr_96px] gap-2">
             <label><span class="field-label">Marka</span><select id="scrapeMake" name="make" class="field" required></select></label>
             <label><span class="field-label">Lapas</span>
-              <select name="pages" class="field"><option>1</option><option>2</option><option selected>3</option><option>5</option></select>
+              <select name="pages" class="field"><option>1</option><option selected>2</option><option>3</option><option>5</option></select>
             </label>
           </div>
-          <button id="scrapeBtn" class="btn-dark w-full disabled:cursor-wait">Skenēt ss.lv</button>
+          <button id="scrapeBtn" class="btn-dark w-full disabled:cursor-wait">Skenēt</button>
+          <ul id="scrapeReport" class="space-y-1 text-sm"></ul>
         </form>
 
         <div class="space-y-4 border-t border-hair pt-8">

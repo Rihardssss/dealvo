@@ -50,3 +50,18 @@ test('scenārijs 5: atkārtota ielāde nedublē sludinājumus', async () => {
   assert.strictEqual(r.added, 0);
   assert.strictEqual(before, after);
 });
+
+test('scenārijs 7: nezināms avots tiek noraidīts', async () => {
+  const res = await post('/api/scrape', { make: 'bmw', pages: 1, sources: ['ebay'] });
+  assert.strictEqual(res.status, 400);
+});
+
+test('scenārijs 8: AI asistents (bezsaistes režīms) atrod auto pēc teksta', async () => {
+  const res = await post('/api/assistant', { question: 'Volkswagen līdz 8000 eur' });
+  assert.strictEqual(res.status, 200);
+  const data = await res.json();
+  assert.strictEqual(data.mode, 'offline');
+  assert.ok(data.answer.length > 10);
+  assert.ok(data.items.length > 0);
+  assert.ok(data.items.every((l) => l.make === 'Volkswagen' && l.price <= 8000));
+});

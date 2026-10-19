@@ -7,8 +7,8 @@
     "build:css": "tailwindcss -i src/styles.css -o public/app.css --minify",
     "watch:css": "tailwindcss -i src/styles.css -o public/app.css --watch",
     "prestart": "npm run build:css",
-    "start": "node src/server.js",
-    "dev": "npm run build:css && node --watch src/server.js",
+    "start": "node --env-file-if-exists=.env src/server.js",
+    "dev": "npm run build:css && node --env-file-if-exists=.env --watch src/server.js",
     "seed": "node src/seed.js",
     "test": "node --test test/*.test.js"
   },

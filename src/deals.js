@@ -16,11 +16,15 @@ function median(nums) {
   return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
 }
 
+const { normalizeMake, normalizeModel } = require('./makes');
+
 const norm = (s) => String(s || '').trim().toLowerCase();
+// Atslēga, pēc kuras auto uzskata par "to pašu modeli" arī starp dažādiem avotiem
+const modelKey = (l) => `${norm(normalizeMake(l.make))}|${norm(normalizeModel(l.model))}`;
 
 function isComparable(a, b) {
   if (a === b) return false;
-  if (norm(a.make) !== norm(b.make) || norm(a.model) !== norm(b.model)) return false;
+  if (modelKey(a) !== modelKey(b)) return false;
   if (Math.abs(a.year - b.year) > YEAR_RANGE) return false;
   if (a.mileage != null && b.mileage != null && Math.abs(a.mileage - b.mileage) > MILEAGE_RANGE) return false;
   return true;
@@ -42,13 +46,13 @@ function scoreListings(listings) {
   // Grupējam pēc marka+modelis, lai nesalīdzinātu katru ar katru (ātrāk)
   const groups = new Map();
   for (const l of listings) {
-    const key = `${norm(l.make)}|${norm(l.model)}`;
+    const key = modelKey(l);
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(l);
   }
 
   return listings.map((l) => {
-    const group = groups.get(`${norm(l.make)}|${norm(l.model)}`) || [];
+    const group = groups.get(modelKey(l)) || [];
     const comps = group.filter((o) => isComparable(l, o));
     if (comps.length < MIN_COMPARABLES) {
       return { ...l, marketPrice: null, dealScore: null, dealLabel: null, comparables: comps.length };

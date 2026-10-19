@@ -1,29 +1,11 @@
 // Ievades validācija visiem API pieprasījumiem.
 // Viss, kas nāk no lietotāja, tiek pārbaudīts šeit, pirms nonāk līdz skrāperim vai datiem.
 
-// Atļautās markas (ss.lv URL "slug" formātā). Ārpus šī saraksta neko neskrāpējam,
-// tāpēc lietotājs nevar likt serverim pieprasīt patvaļīgus URL.
-const MAKES = {
-  'audi': 'Audi',
-  'bmw': 'BMW',
-  'citroen': 'Citroen',
-  'ford': 'Ford',
-  'honda': 'Honda',
-  'hyundai': 'Hyundai',
-  'kia': 'Kia',
-  'lexus': 'Lexus',
-  'mazda': 'Mazda',
-  'mercedes': 'Mercedes',
-  'nissan': 'Nissan',
-  'opel': 'Opel',
-  'peugeot': 'Peugeot',
-  'renault': 'Renault',
-  'skoda': 'Skoda',
-  'subaru': 'Subaru',
-  'toyota': 'Toyota',
-  'volkswagen': 'Volkswagen',
-  'volvo': 'Volvo',
-};
+const { MAKE_TABLE } = require('./makes');
+
+// slug → nosaukums (piem. 'bmw' → 'BMW'); skrāpēt var tikai šīs markas
+const MAKES = Object.fromEntries(Object.entries(MAKE_TABLE).map(([k, v]) => [k, v.name]));
+const SOURCE_KEYS = ['sslv', 'autoscout24', 'mobilede'];
 
 const CURRENT_YEAR = new Date().getFullYear();
 
@@ -46,7 +28,15 @@ function validateScrapeRequest(body) {
   const pages = toInt(body?.pages ?? 1, { min: 1, max: 5, field: 'pages' });
   if (!pages.ok) errors.push(pages.error);
 
-  return errors.length ? { ok: false, errors } : { ok: true, value: { make, pages: pages.value } };
+  let sources = body?.sources ?? ['sslv'];
+  if (!Array.isArray(sources) || sources.length === 0 || sources.length > SOURCE_KEYS.length
+      || !sources.every((s) => SOURCE_KEYS.includes(s))) {
+    errors.push(`sources: atļauts ${SOURCE_KEYS.join(', ')}`);
+  } else {
+    sources = [...new Set(sources)];
+  }
+
+  return errors.length ? { ok: false, errors } : { ok: true, value: { make, pages: pages.value, sources } };
 }
 
 // GET /api/listings?make=&model=&minYear=&maxYear=&maxPrice=&maxMileage=&sort=&limit=
@@ -63,6 +53,17 @@ function validateListingQuery(q = {}) {
     const model = String(q.model).trim();
     if (model.length > 40 || !/^[\p{L}\p{N} .\-]+$/u.test(model)) errors.push('model: neatļauti simboli');
     else out.model = model;
+  }
+
+  if (q.source) {
+    const source = String(q.source);
+    if (!/^[a-z0-9.\-]{2,30}$/i.test(source)) errors.push('source: neatļauti simboli');
+    else out.source = source;
+  }
+  if (q.fuel) {
+    const fuels = ['dīzelis', 'benzīns', 'hibrīds', 'elektro', 'gāze'];
+    if (!fuels.includes(q.fuel)) errors.push(`fuel: atļauts ${fuels.join(', ')}`);
+    else out.fuel = q.fuel;
   }
 
   const numeric = [
@@ -91,4 +92,4 @@ function validateListingQuery(q = {}) {
   return errors.length ? { ok: false, errors } : { ok: true, value: out };
 }
 
-module.exports = { MAKES, validateScrapeRequest, validateListingQuery };
+module.exports = { MAKES, SOURCE_KEYS, validateScrapeRequest, validateListingQuery };

@@ -90,7 +90,10 @@ function parseListPage(html, makeName) {
       fuel,
       mileage: parseMileage(mileageT),
       price,
-      image: img && img.startsWith('http') ? img : null,
+      // ss.lv sarakstā ir mazs sīktēls (.th2.jpg); tā pati bilde lielā izmērā ir .800.jpg
+      image: img && img.startsWith('http') ? img.replace(/\.th2\.jpg$/, '.800.jpg') : null,
+      thumb: img && img.startsWith('http') ? img : null,
+      country: 'LV',
     });
   });
 
