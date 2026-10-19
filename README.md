@@ -2,7 +2,7 @@
 
 Lietotu auto meklētājs. Savāc sludinājumus no ss.lv, AutoScout24 un mobile.de un parāda, kuri auto ir lētāki nekā līdzīgi auto tirgū.
 
-Victoria projektu nedēļa, 2026. Rihards Indars, PX23.
+Victoria projektu nedēļa, 2026.
 
 ## Ko tas dara
 
@@ -54,6 +54,13 @@ Katram auto atrod līdzīgus auto (tā pati marka un modelis, gads ±2, nobrauku
 - `TESTI.md` testu scenāriji
 - `DEPLOY.md` kā ielikt internetā
 
-## Autors
+## Komanda
 
-Rihards Indars. Koda rakstīšanā izmantots AI asistents (Claude).
+| Dalībnieks | Grupa | Atbildība |
+|---|---|---|
+| Rihards Indars | PX23 | Ideja, serveris, datu nolasīšana, cenu aprēķins, AI asistents |
+| Miks Henrijs Ozoliņš | PX24 | Testēšana ar īstām vietnēm (ss.lv, AutoScout24, mobile.de), kļūdu saraksts, TESTI.md |
+| Kristiāns Štībelis | PX24 | Publicēšana internetā (Cloudflare Tunnel, dealvo.riciboy.eu), DEPLOY.md |
+| Rihards Berķis | PX24 | Dizaina un lietojamības pārbaude uz datora un telefona, prezentācija un demo scenārijs |
+
+Koda rakstīšanā izmantots AI asistents (Claude).
