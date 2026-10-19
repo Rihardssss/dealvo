@@ -82,4 +82,24 @@ function clear() {
   save();
 }
 
-module.exports = { upsert, all, clear, update, find, FILE };
+/**
+ * Izdzēš sludinājumus, kas vairs nav redzēti vietnē (auto pārdots vai sludinājums noņemts).
+ * Demo datus neaiztiek.
+ */
+function prune(maxAgeDays, now = Date.now()) {
+  const limit = now - maxAgeDays * 24 * 60 * 60 * 1000;
+  const before = load().length;
+  cache = cache.filter((l) => String(l.source).startsWith('demo') || new Date(l.lastSeen).getTime() >= limit);
+  if (cache.length !== before) save();
+  return before - cache.length;
+}
+
+/** Izdzēš tikai demo datus (kad ir ielādēti īstie). */
+function clearDemo() {
+  const before = load().length;
+  cache = cache.filter((l) => !String(l.source).startsWith('demo'));
+  if (cache.length !== before) save();
+  return before - cache.length;
+}
+
+module.exports = { upsert, all, clear, clearDemo, prune, update, find, FILE };

@@ -62,3 +62,10 @@ test('virsbūve tiek noteikta pēc avota datiem vai modeļa', () => {
   assert.strictEqual(bodyLv('Station wagon'), 'universālis');
   assert.strictEqual(normalizeModel('C220', 'Mercedes'), 'C');
 });
+
+test('virsbūve no AutoScout24 versijas nosaukuma', () => {
+  const { bodyLv } = require('../src/makes');
+  assert.strictEqual(bodyLv('3 Touring 320i'), 'universālis');
+  assert.strictEqual(bodyLv('Avant 2.0 TDI'), 'universālis');
+  assert.strictEqual(bodyLv('Sportback 2.0 TDI'), 'hečbeks');
+});

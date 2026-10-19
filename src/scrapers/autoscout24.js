@@ -53,7 +53,8 @@ function fromNextData(json) {
       year,
       engine: null,
       fuel: fuelLv(v.fuel ?? t.fuelType),
-      body: bodyLv(v.bodyType ?? v.bodyTypeId),
+      // Virsbūve: no datiem, vai no nosaukuma ("Avant", "Touring", "Sportback")
+      body: bodyLv(v.bodyType ?? v.bodyTypeId) || bodyLv(v.modelVersionInput),
       mileage: digits(t.mileage) ?? digits(v.mileageInKm),
       price,
       image: typeof img === 'string' ? img : img?.url ?? null,

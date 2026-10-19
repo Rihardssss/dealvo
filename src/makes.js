@@ -87,8 +87,8 @@ function bodyLv(raw) {
   const t = String(raw ?? '').toLowerCase();
   if (!t) return null;
   if (/sedan|limousine|limuzīn/.test(t)) return S;
-  if (/station|wagon|kombi|estate|touring|avant|univers/.test(t)) return U;
-  if (/compact|hatch|kleinwagen|small|hečbek/.test(t)) return H;
+  if (/station|wagon|kombi|estate|touring|avant|variant|sports ?tourer|univers/.test(t)) return U;
+  if (/compact|hatch|kleinwagen|small|sportback|hečbek/.test(t)) return H;
   if (/suv|off-?road|gelände|pick-?up|apvid|džip/.test(t)) return A;
   if (/van|mpv|minibus|minivan|minivens/.test(t)) return M;
   if (/coupe|coupé|kupej/.test(t)) return K;

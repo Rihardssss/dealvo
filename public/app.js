@@ -337,13 +337,46 @@ async function loadListings() {
     const data = await api('/api/listings?' + filters());
     $('#count').textContent = data.total ? `${fmt.format(data.total)} auto` : 'Nekas netika atrasts';
     $('#showBtn').textContent = `Rādīt ${fmt.format(data.total)} auto`;
-    $('#list').innerHTML = data.items.length
+    const makeName = $('#filterMake').selectedOptions[0]?.textContent || '';
+    $('#list').innerHTML = (data.refreshing
+      ? `<li class="flex items-center gap-3 rounded-xl border border-navy/20 bg-navy/5 px-5 py-4 text-sm text-navy">
+          <span class="size-2 animate-pulse rounded-full bg-navy"></span>
+          Meklējam jaunākos ${esc(makeName)} sludinājumus vietnēs. Saraksts atjaunosies pats.</li>`
+      : '') + (data.items.length
       ? data.items.map(listCard).join('')
-      : `<li class="rounded-xl border border-hair bg-paper px-6 py-14 text-center text-sub">Neviens auto neatbilst filtriem. Mēģini palielināt cenu vai noņemt modeli.</li>`;
+      : data.refreshing ? '' : `<li class="rounded-xl border border-hair bg-paper px-6 py-14 text-center text-sub">Neviens auto neatbilst filtriem. Mēģini palielināt cenu vai noņemt modeli.</li>`);
+    if (data.refreshing) waitForScan();
   } catch (e) {
     $('#count').textContent = 'Filtrs nav derīgs';
     $('#list').innerHTML = `<li class="rounded-xl border border-hair bg-paper px-6 py-10 text-above">${esc(e.message)}</li>`;
   }
+}
+
+// Kamēr fonā notiek skenēšana, ik pēc 3 s pārbaudām statusu; kad beidzas, pārlādējam datus
+let waiting = false;
+async function waitForScan() {
+  if (waiting) return;
+  waiting = true;
+  try {
+    for (let i = 0; i < 40; i++) {
+      await new Promise((r) => setTimeout(r, 3000));
+      const st = await api('/api/scan-status');
+      if (!st.running) break;
+    }
+  } finally {
+    waiting = false;
+  }
+  await Promise.all([loadStats(), loadTop()]);
+  // Vēlreiz ielādējam sarakstu; marka tagad ir svaiga, tāpēc jauna skenēšana nesāksies
+  loadListings();
+}
+
+function ago(iso) {
+  const min = Math.round((Date.now() - new Date(iso).getTime()) / 60000);
+  if (min < 1) return 'tikko';
+  if (min < 60) return `pirms ${min} min`;
+  const h = Math.round(min / 60);
+  return h < 24 ? `pirms ${h} h` : `pirms ${Math.round(h / 24)} d`;
 }
 
 async function loadTop() {
@@ -360,8 +393,8 @@ async function loadStats() {
   const s = await api('/api/stats');
   const names = Object.keys(s.bySource).map(sourceLabel);
   $('#sourceLine').textContent = s.total
-    ? `${fmt.format(s.total)} sludinājumi no ${names.join(', ')}. ${fmt.format(s.superDeals)} no tiem ir vismaz 20% lētāki par līdzīgiem auto.`
-    : 'Datu vēl nav. Nospied "Atjaunot datus", lai noskenētu vietnes.';
+    ? `${fmt.format(s.total)} sludinājumi no ${names.join(', ')}. ${fmt.format(s.superDeals)} no tiem ir vismaz 20% lētāki par līdzīgiem auto.${s.lastScanAt ? ` Atjaunots ${ago(s.lastScanAt)}.` : ''}`
+    : 'Pirmie sludinājumi tiek ielādēti. Pārlādē lapu pēc minūtes.';
   // Vietņu filtrs sānjoslā — rādām tikai tās, kurām ir dati
   const current = new FormData($('#sideForm')).get('source') || '';
   $('#sourceRadios').innerHTML = [['', 'Visas', s.total], ...Object.entries(s.bySource).map(([k, n]) => [k, sourceLabel(k), n])]

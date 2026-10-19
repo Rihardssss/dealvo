@@ -6,7 +6,8 @@ Victoria projektu nedēļa, 2026.
 
 ## Ko tas dara
 
-- Nolasa sludinājumus no trim vietnēm
+- Nolasa sludinājumus no trim vietnēm, pats ik pēc 10 min (pa vienai markai)
+- Ja kāds atver marku ar veciem datiem, to uzreiz atjauno
 - Salīdzina katru auto ar līdzīgiem un parāda, par cik % tas ir lētāks vai dārgāks
 - Filtri: marka, modelis, gads, cena, nobraukums, degviela, virsbūve
 - Auto lapa ar bildēm, datiem un pārdevēju
@@ -63,4 +64,3 @@ Katram auto atrod līdzīgus auto (tā pati marka un modelis, gads ±2, nobrauku
 | Kristiāns Štībelis | PX24 | Publicēšana internetā (Cloudflare Tunnel, dealvo.riciboy.eu), DEPLOY.md |
 | Rihards Berķis | PX24 | Dizaina un lietojamības pārbaude uz datora un telefona, prezentācija un demo scenārijs |
 
-Koda rakstīšanā izmantots AI asistents (Claude).

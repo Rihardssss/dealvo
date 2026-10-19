@@ -7,6 +7,7 @@ const { scoreListings } = require('./deals');
 const { searchListings, modelsFor } = require('./search');
 const assistant = require('./assistant');
 const { getListing } = require('./listing-details');
+const { createAutoScan } = require('./autoscan');
 const { MAKE_TABLE } = require('./makes');
 const { MAKES, validateScrapeRequest, validateListingQuery } = require('./validate');
 
@@ -23,6 +24,17 @@ app.use((req, res, next) => {
 });
 
 let scrapeInProgress = false;
+
+// Automātiskā skenēšana (izslēgt: AUTO_SCAN=0). mobile.de pēc noklusējuma neiekļauts, jo bloķē.
+const AUTO_SCAN = process.env.AUTO_SCAN !== '0' && require.main === module;
+const autoscan = createAutoScan({
+  db,
+  scrape: scrapeMake,
+  makes: MAKE_TABLE,
+  sources: (process.env.AUTO_SCAN_SOURCES || 'sslv,autoscout24').split(',').map((s) => s.trim()).filter((s) => SOURCES[s]),
+  pages: Number(process.env.AUTO_SCAN_PAGES) || 2,
+  staleMinutes: Number(process.env.AUTO_SCAN_STALE_MINUTES) || 60,
+});
 
 // Admin aizsardzība: kad lapa ir publiska internetā, datus mainīt (skenēt, ielādēt demo,
 // dzēst) var tikai ar ADMIN_TOKEN. Lokāli bez ADMIN_TOKEN viss ir atļauts.
@@ -87,7 +99,9 @@ app.get('/api/listing', async (req, res) => {
 app.get('/api/listings', (req, res) => {
   const v = validateListingQuery(req.query);
   if (!v.ok) return res.status(400).json({ errors: v.errors });
-  res.json(searchListings(v.value));
+  // Ja lietotājs skatās marku ar veciem datiem, atjaunojam to fonā
+  const refreshing = AUTO_SCAN && v.value.make ? autoscan.ensureFresh(v.value.make) : false;
+  res.json({ ...searchListings(v.value), refreshing });
 });
 
 // AI asistents — atsevišķs, stingrāks limits (katrs pieprasījums var maksāt API naudu)
@@ -103,6 +117,8 @@ app.post('/api/assistant', async (req, res) => {
   res.json(await assistant.ask(req.body.question));
 });
 
+app.get('/api/scan-status', (req, res) => res.json({ enabled: AUTO_SCAN, ...autoscan.status() }));
+
 app.get('/api/stats', (req, res) => {
   const scored = scoreListings(db.all());
   const bySource = {};
@@ -113,6 +129,7 @@ app.get('/api/stats', (req, res) => {
     superDeals: scored.filter((l) => l.dealLabel === 'super').length,
     goodDeals: scored.filter((l) => l.dealLabel === 'labs').length,
     priceDrops: scored.filter((l) => l.priceHistory?.length && l.price < l.priceHistory.at(-1).price).length,
+    lastScanAt: autoscan.status().lastScanAt,
   });
 });
 
@@ -125,6 +142,7 @@ app.post('/api/scrape', requireAdmin, async (req, res) => {
   try {
     const { make, pages, sources } = v.value;
     const { items, report } = await scrapeMake(MAKE_TABLE[make], sources, pages);
+    if (items.length) db.clearDemo();
     const result = db.upsert(items);
     res.json({ found: items.length, ...result, report });
   } catch (err) {
@@ -153,6 +171,7 @@ app.use((err, req, res, next) => {
 const PORT = Number(process.env.PORT) || 3000;
 if (require.main === module) {
   app.listen(PORT, () => console.log(`Dealvo darbojas: http://localhost:${PORT}`));
+  if (AUTO_SCAN) autoscan.start(Number(process.env.AUTO_SCAN_MINUTES) || 10);
 }
 
 module.exports = app;
