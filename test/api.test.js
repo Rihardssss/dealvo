@@ -65,3 +65,13 @@ test('scenārijs 8: AI asistents (bezsaistes režīms) atrod auto pēc teksta', 
   assert.ok(data.items.length > 0);
   assert.ok(data.items.every((l) => l.make === 'Volkswagen' && l.price <= 8000));
 });
+
+test('scenārijs 9: modeļu saraksts markai un filtrs pēc virsbūves un gadu diapazona', async () => {
+  const models = await (await fetch(base + '/api/models?make=volkswagen')).json();
+  assert.ok(models.some((m) => m.model === 'Golf' && m.count > 0));
+  const data = await (await fetch(base + '/api/listings?body=apvidus&minYear=2015&maxYear=2020&limit=500')).json();
+  assert.ok(data.total > 0);
+  assert.ok(data.items.every((l) => l.body === 'apvidus' && l.year >= 2015 && l.year <= 2020));
+  const bad = await fetch(base + '/api/listings?body=traktors');
+  assert.strictEqual(bad.status, 400);
+});

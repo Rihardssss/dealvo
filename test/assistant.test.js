@@ -25,3 +25,8 @@ test('asistents noraida tukšu vai pārāk garu jautājumu', () => {
   assert.ok(validateQuestion(42));
   assert.strictEqual(validateQuestion('BMW līdz 5000'), null);
 });
+
+test('asistents saprot virsbūvi', () => {
+  assert.strictEqual(parseQuestion('universālis līdz 7000').body, 'universālis');
+  assert.strictEqual(parseQuestion('lēts suv').body, 'apvidus');
+});

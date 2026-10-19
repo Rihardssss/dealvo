@@ -71,6 +71,13 @@ function parseQuestion(q) {
   else if (/hibrīd|hibrid|hybrid/.test(t)) f.fuel = 'hibrīds';
   else if (/elektr|electric|\bev\b/.test(t)) f.fuel = 'elektro';
 
+  const bodies = [
+    [/univers|kombi/, 'universālis'], [/apvid|suv|džip|dzip|krosover/, 'apvidus'], [/sedan/, 'sedans'],
+    [/hečbek|hecbek|hatch/, 'hečbeks'], [/miniven|ģimenes auto|vens\b/, 'minivens'],
+    [/kupej|coupe/, 'kupeja'], [/kabriol|cabrio/, 'kabriolets'],
+  ];
+  for (const [re, body] of bodies) if (re.test(t)) { f.body = body; break; }
+
   if (/mazs? nobrauk|maz nobrauk|mazāko nobrauk/.test(t)) f.sort = 'mileage';
   else if (/lētāk|lētu|lēts|lēti/.test(t) && !/deal|izdevīg|atlaid/.test(t)) f.sort = 'price';
   else if (/jaunāk/.test(t) && !f.minYear) f.sort = 'year';
@@ -84,6 +91,7 @@ function describeFilters(f) {
   if (f.make) parts.push(MAKES[f.make]);
   if (f.model) parts.push(f.model);
   if (f.fuel) parts.push(f.fuel);
+  if (f.body) parts.push(f.body);
   if (f.minYear) parts.push(`no ${f.minYear}. gada`);
   if (f.maxYear) parts.push(`līdz ${f.maxYear}. gadam`);
   if (f.maxPrice) parts.push(`līdz ${eur(f.maxPrice)}`);
@@ -141,6 +149,8 @@ const TOOLS = [{
       make: { type: 'string', enum: Object.keys(MAKES), description: 'Marka (slug)' },
       model: { type: 'string', description: 'Modelis, piem. "Golf", "320", "A4"' },
       fuel: { type: 'string', enum: ['dīzelis', 'benzīns', 'hibrīds', 'elektro', 'gāze'] },
+      body: { type: 'string', enum: ['sedans', 'universālis', 'hečbeks', 'apvidus', 'minivens', 'kupeja', 'kabriolets'], description: 'Virsbūve' },
+      minPrice: { type: 'integer', description: 'Minimālā cena eiro' },
       minYear: { type: 'integer' },
       maxYear: { type: 'integer' },
       maxPrice: { type: 'integer', description: 'Maksimālā cena eiro' },
@@ -160,6 +170,7 @@ const compact = (l) => ({
   dealScore: l.dealScore,
   nobraukums: l.mileage,
   degviela: l.fuel,
+  virsbuve: l.body,
   avots: l.source,
 });
 

@@ -53,3 +53,12 @@ test('dažādu avotu nosaukumi tiek normalizēti salīdzināšanai', () => {
   assert.strictEqual(fuelLv('Electric/Gasoline'), 'hibrīds');
   assert.strictEqual(fuelLv('d'), 'dīzelis');
 });
+
+test('virsbūve tiek noteikta pēc avota datiem vai modeļa', () => {
+  const { bodyFor, bodyLv } = require('../src/makes');
+  assert.strictEqual(bodyFor('Volkswagen', 'Golf VII'), 'hečbeks');
+  assert.strictEqual(bodyFor('Mercedes-Benz', 'GLC300'), 'apvidus');
+  assert.strictEqual(bodyFor('BMW', '320d'), 'sedans');
+  assert.strictEqual(bodyLv('Station wagon'), 'universālis');
+  assert.strictEqual(normalizeModel('C220', 'Mercedes'), 'C');
+});

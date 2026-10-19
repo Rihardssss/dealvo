@@ -38,29 +38,45 @@
       <p id="sourceLine" class="mt-2 text-paper/70"></p>
 
       <div class="mt-7 rounded-xl bg-paper p-4 text-ink shadow-[0_20px_50px_-20px_rgb(0_0_0/0.5)] sm:p-6">
-        <form id="searchForm" class="grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-7" autocomplete="off">
-          <label><span class="field-label">Marka</span>
-            <select name="make" id="filterMake" class="field"><option value="">Visas</option></select>
-          </label>
-          <label><span class="field-label">Modelis</span>
-            <input name="model" class="field" placeholder="Jebkurš" maxlength="40">
-          </label>
-          <label><span class="field-label">Cena līdz</span>
-            <input name="maxPrice" type="number" inputmode="numeric" min="1" step="500" class="field" placeholder="€">
-          </label>
-          <label><span class="field-label">Gads no</span>
-            <input name="minYear" type="number" inputmode="numeric" min="1950" max="2027" class="field" placeholder="Jebkurš">
-          </label>
-          <label><span class="field-label">Nobraukums līdz</span>
-            <input name="maxMileage" type="number" inputmode="numeric" min="0" step="10000" class="field" placeholder="km">
-          </label>
-          <label><span class="field-label">Degviela</span>
-            <select name="fuel" class="field">
-              <option value="">Jebkura</option><option>dīzelis</option><option>benzīns</option><option>hibrīds</option><option>elektro</option><option>gāze</option>
-            </select>
-          </label>
-          <div class="col-span-2 flex items-end md:col-span-2 lg:col-span-1">
-            <button class="btn-dark h-10 w-full" id="showBtn">Rādīt auto</button>
+        <form id="searchForm" class="space-y-5" autocomplete="off">
+          <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <label><span class="field-label">Marka</span>
+              <select name="make" id="filterMake" class="field"><option value="">Visas markas</option></select>
+            </label>
+            <label><span class="field-label">Modelis</span>
+              <select name="model" id="filterModel" class="field disabled:bg-wash disabled:text-faint" disabled><option value="">Vispirms izvēlies marku</option></select>
+            </label>
+            <label><span class="field-label">Gads no</span>
+              <select name="minYear" id="minYear" class="field" data-years><option value="">Jebkurš</option></select>
+            </label>
+            <label><span class="field-label">Gads līdz</span>
+              <select name="maxYear" id="maxYear" class="field" data-years><option value="">Jebkurš</option></select>
+            </label>
+            <label><span class="field-label">Cena no</span>
+              <select name="minPrice" id="minPrice" class="field" data-prices><option value="">Jebkura</option></select>
+            </label>
+            <label><span class="field-label">Cena līdz</span>
+              <select name="maxPrice" id="maxPrice" class="field" data-prices><option value="">Jebkura</option></select>
+            </label>
+            <label><span class="field-label">Nobraukums līdz</span>
+              <select name="maxMileage" id="maxMileage" class="field"><option value="">Jebkurš</option></select>
+            </label>
+            <label><span class="field-label">Degviela</span>
+              <select name="fuel" id="fuel" class="field">
+                <option value="">Jebkura</option><option value="dīzelis">Dīzelis</option><option value="benzīns">Benzīns</option>
+                <option value="hibrīds">Hibrīds</option><option value="elektro">Elektro</option><option value="gāze">Gāze</option>
+              </select>
+            </label>
+          </div>
+
+          <fieldset>
+            <legend class="field-label">Virsbūve</legend>
+            <div id="bodyTypes" class="grid grid-cols-4 gap-2 sm:grid-cols-8"></div>
+          </fieldset>
+
+          <div class="flex flex-col-reverse items-stretch justify-between gap-3 border-t border-hair pt-5 sm:flex-row sm:items-center">
+            <button type="button" id="resetBtn" class="text-sm text-sub underline underline-offset-4 hover:text-ink">Notīrīt filtrus</button>
+            <button class="btn-dark h-11 px-8 text-base sm:min-w-56" id="showBtn">Rādīt auto</button>
           </div>
         </form>
 
@@ -110,10 +126,6 @@
             <legend class="field-label">Vietne</legend>
             <div id="sourceRadios" class="space-y-1.5 text-sm"></div>
           </fieldset>
-          <label class="block"><span class="field-label">Gads līdz</span>
-            <input name="maxYear" type="number" inputmode="numeric" min="1950" max="2027" class="field" placeholder="Jebkurš">
-          </label>
-          <button type="button" id="resetBtn" class="text-sm text-sub underline underline-offset-4 hover:text-ink">Notīrīt visus filtrus</button>
         </form>
       </aside>
 

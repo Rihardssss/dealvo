@@ -4,7 +4,7 @@ const db = require('./db');
 const demo = require('./scrapers/demo');
 const { SOURCES, scrapeMake } = require('./scrapers');
 const { scoreListings } = require('./deals');
-const { searchListings } = require('./search');
+const { searchListings, modelsFor } = require('./search');
 const assistant = require('./assistant');
 const { MAKE_TABLE } = require('./makes');
 const { MAKES, validateScrapeRequest, validateListingQuery } = require('./validate');
@@ -56,6 +56,12 @@ app.get('/api/config', (req, res) => res.json({
 
 app.get('/api/makes', (req, res) => {
   res.json(Object.entries(MAKES).map(([slug, name]) => ({ slug, name })));
+});
+
+app.get('/api/models', (req, res) => {
+  const make = String(req.query.make || '').toLowerCase();
+  if (!MAKES[make]) return res.status(400).json({ errors: ['make: nezināma marka'] });
+  res.json(modelsFor(make));
 });
 
 app.get('/api/listings', (req, res) => {

@@ -7,7 +7,7 @@
 
 const cheerio = require('cheerio');
 const { fetchHtml, sleep, digits, yearFrom, fuelLv } = require('./http');
-const { normalizeMake } = require('../makes');
+const { normalizeMake, bodyLv } = require('../makes');
 
 const BASE = 'https://suchen.mobile.de';
 const DELAY_MS = 3000;
@@ -54,6 +54,7 @@ function parseListPage(html, makeName) {
         year: yearFrom(a.fr ?? i.firstRegistration),
         engine: null,
         fuel: fuelLv(a.ft ?? i.fuelType),
+        body: bodyLv(i.category ?? a.ca),
         mileage: digits(a.ml ?? i.mileage),
         price: digits(i.price?.grossAmount ?? i.price?.gross ?? i.price),
         image: img,

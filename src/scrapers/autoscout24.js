@@ -6,7 +6,7 @@
 
 const cheerio = require('cheerio');
 const { fetchHtml, sleep, digits, yearFrom, fuelLv } = require('./http');
-const { normalizeMake } = require('../makes');
+const { normalizeMake, bodyLv } = require('../makes');
 
 const BASE = 'https://www.autoscout24.com';
 const DELAY_MS = 2000;
@@ -45,6 +45,7 @@ function fromNextData(json) {
       year,
       engine: null,
       fuel: fuelLv(v.fuel ?? t.fuelType),
+      body: bodyLv(v.bodyType ?? v.bodyTypeId),
       mileage: digits(t.mileage) ?? digits(v.mileageInKm),
       price,
       image: typeof img === 'string' ? img : img?.url ?? null,
@@ -68,6 +69,7 @@ function fromArticles($) {
       year: yearFrom(a.attr('data-first-registration')),
       engine: null,
       fuel: fuelLv(a.attr('data-fuel-type')),
+      body: bodyLv(a.attr('data-body-type')),
       mileage: digits(a.attr('data-mileage')),
       price: digits(a.attr('data-price')),
       image: img,

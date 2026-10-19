@@ -1,6 +1,6 @@
 # Pārbaudes scenāriji
 
-Automātiskie testi: `npm test` → 26/26 izdodas (3 vietņu parsētāji, deal algoritms, API, AI asistents, admin aizsardzība).
+Automātiskie testi: `npm test` → 29/29 izdodas (3 vietņu parsētāji, deal algoritms, API, AI asistents, admin aizsardzība).
 
 ## 1. Lietotājs atrod labāko dealu
 | | |

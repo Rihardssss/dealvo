@@ -57,6 +57,7 @@ function facts(l) {
   return [
     l.year,
     l.mileage != null ? `${fmt.format(l.mileage)} km` : null,
+    l.body,
     l.fuel,
     l.engine ? `${l.engine} l` : null,
   ].filter(Boolean).map((f) => `<span class="rounded bg-wash px-2 py-0.5">${esc(f)}</span>`).join('');
@@ -238,14 +239,25 @@ async function askAssistant(question) {
   }
 }
 
-// Asistenta atrastos filtrus ieliekam meklēšanas formā, lai saraksts zemāk sakrīt
-function applyFilters(f) {
-  for (const form of ['#searchForm', '#sideForm']) {
-    for (const el of $(form).elements) {
-      if (!el.name || el.type === 'radio') continue;
-      el.value = f[el.name] ?? (el.name === 'sort' ? 'deal' : '');
-    }
+// Izvēlnē ieliek vērtību; ja tādas opcijas nav (piem. AI deva 8200 €), pievieno to
+function setSelect(el, value) {
+  if (value == null || value === '') { el.value = ''; return; }
+  const v = String(value);
+  if (![...el.options].some((o) => o.value === v)) {
+    const label = el.dataset.prices !== undefined ? eur(Number(v)) : el.id === 'maxMileage' ? `${fmt.format(Number(v))} km` : v;
+    el.add(new Option(label, v));
   }
+  el.value = v;
+}
+
+// Asistenta atrastos filtrus ieliekam meklēšanas formā, lai saraksts zemāk sakrīt
+async function applyFilters(f) {
+  setSelect($('#filterMake'), f.make);
+  await loadModels(f.make || '');
+  setSelect($('#filterModel'), f.model);
+  for (const id of ['minYear', 'maxYear', 'minPrice', 'maxPrice', 'maxMileage', 'fuel']) setSelect($('#' + id), f[id]);
+  setBody(f.body || '');
+  $('#sideForm').elements.sort.value = f.sort || 'deal';
   loadListings();
 }
 
@@ -261,10 +273,75 @@ $$('#aiExamples button').forEach((b) => b.addEventListener('click', () => {
 
 // ---------- Filtri ----------
 
+const BODY_ICONS = {
+  '': '<circle cx="12" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="24" cy="12" r="1.6" fill="currentColor" stroke="none"/><circle cx="36" cy="12" r="1.6" fill="currentColor" stroke="none"/>',
+  sedans: '<path d="M4 17v-3l6-1 5-5h13l6 5 8 1v3"/>',
+  'universālis': '<path d="M4 17v-3l5-1 5-5h22l5 6h3v3"/>',
+  'hečbeks': '<path d="M8 17v-3l5-1 5-5h11l5 6h4v3"/>',
+  apvidus: '<path d="M4 17v-6l5-1 4-5h21l3 6h5v6"/>',
+  minivens: '<path d="M4 17v-6l7-6h29l1 12"/>',
+  kupeja: '<path d="M4 17v-3l7-1 7-4h9l8 4 9 1v3"/>',
+  kabriolets: '<path d="M4 17v-3l7-1h7l2-3M20 13h24v4"/>',
+};
+const BODY_LABELS = { '': 'Visas', sedans: 'Sedans', 'universālis': 'Universālis', 'hečbeks': 'Hečbeks', apvidus: 'Apvidus', minivens: 'Minivens', kupeja: 'Kupeja', kabriolets: 'Kabriolets' };
+
+function renderBodyTypes() {
+  $('#bodyTypes').innerHTML = Object.keys(BODY_LABELS).map((key) => `
+    <label class="cursor-pointer">
+      <input type="radio" name="body" value="${esc(key)}" class="peer sr-only" ${key === '' ? 'checked' : ''}>
+      <span class="flex h-full flex-col items-center gap-1 rounded-lg border border-hair px-1 py-2.5 text-xs text-sub transition-colors
+        hover:border-faint peer-checked:border-navy peer-checked:bg-navy/5 peer-checked:text-navy peer-focus-visible:ring-2 peer-focus-visible:ring-navy">
+        <svg viewBox="0 0 48 24" class="h-8 w-16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          ${BODY_ICONS[key]}${key ? '<circle cx="14" cy="17" r="3.2" fill="var(--color-paper)"/><circle cx="35" cy="17" r="3.2" fill="var(--color-paper)"/>' : ''}
+        </svg>
+        ${BODY_LABELS[key]}
+      </span>
+    </label>`).join('');
+}
+function setBody(value) {
+  const r = $(`#bodyTypes input[value="${CSS.escape(value)}"]`) || $('#bodyTypes input[value=""]');
+  r.checked = true;
+}
+
+function fillRangeSelects() {
+  const now = new Date().getFullYear();
+  const years = Array.from({ length: now - 1989 }, (_, i) => now - i);
+  for (const el of $$('[data-years]')) el.insertAdjacentHTML('beforeend', years.map((y) => `<option value="${y}">${y}</option>`).join(''));
+  const prices = [500, 1000, 1500, 2000, 3000, 4000, 5000, 6000, 7500, 10000, 12500, 15000, 20000, 25000, 30000, 40000, 50000, 75000];
+  for (const el of $$('[data-prices]')) el.insertAdjacentHTML('beforeend', prices.map((p) => `<option value="${p}">${eur(p)}</option>`).join(''));
+  const kms = [25000, 50000, 75000, 100000, 125000, 150000, 200000, 250000, 300000];
+  $('#maxMileage').insertAdjacentHTML('beforeend', kms.map((k) => `<option value="${k}">${fmt.format(k)} km</option>`).join(''));
+}
+
+// Izvēloties marku, ielādējam tās modeļus (ar sludinājumu skaitu)
+async function loadModels(make) {
+  const el = $('#filterModel');
+  if (!make) {
+    el.innerHTML = '<option value="">Vispirms izvēlies marku</option>';
+    el.disabled = true;
+    return;
+  }
+  const models = await api('/api/models?make=' + encodeURIComponent(make));
+  el.innerHTML = '<option value="">Visi modeļi</option>' + models.map((m) =>
+    `<option value="${esc(m.model)}">${esc(m.model)}${m.count ? ` (${fmt.format(m.count)})` : ''}</option>`).join('');
+  el.disabled = false;
+}
+$('#filterMake').addEventListener('change', (e) => loadModels(e.target.value).then(loadListings));
+
+// Ja "gads no" > "gads līdz" (vai cenas), otru lauku pielāgojam, nevis rādām kļūdu
+function keepRangeOrder(fromId, toId) {
+  const from = $('#' + fromId), to = $('#' + toId);
+  from.addEventListener('change', () => { if (to.value && from.value && Number(from.value) > Number(to.value)) to.value = from.value; });
+  to.addEventListener('change', () => { if (to.value && from.value && Number(from.value) > Number(to.value)) from.value = to.value; });
+}
+keepRangeOrder('minYear', 'maxYear');
+keepRangeOrder('minPrice', 'maxPrice');
+
 for (const form of ['#searchForm', '#sideForm']) {
-  $(form).addEventListener('input', () => {
+  $(form).addEventListener('change', (e) => {
+    if (e.target.id === 'filterMake') return; // to apstrādā loadModels
     clearTimeout(debounce);
-    debounce = setTimeout(loadListings, 250);
+    debounce = setTimeout(loadListings, 150);
   });
 }
 $('#searchForm').addEventListener('submit', (e) => {
@@ -272,9 +349,10 @@ $('#searchForm').addEventListener('submit', (e) => {
   loadListings();
   $('#results').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
 });
-$('#resetBtn').addEventListener('click', () => {
+$('#resetBtn').addEventListener('click', async () => {
   $('#searchForm').reset();
   $('#sideForm').reset();
+  await loadModels('');
   loadListings();
 });
 
@@ -345,6 +423,8 @@ $('#clearBtn').addEventListener('click', async () => {
     const [makes, cfg] = await Promise.all([api('/api/makes'), api('/api/config')]);
     config = cfg;
     $('#adminBox').classList.toggle('hidden', !cfg.adminRequired);
+    renderBodyTypes();
+    fillRangeSelects();
     const opts = makes.map((m) => `<option value="${esc(m.slug)}">${esc(m.name)}</option>`).join('');
     $('#scrapeMake').innerHTML = opts;
     $('#filterMake').insertAdjacentHTML('beforeend', opts);

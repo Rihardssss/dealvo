@@ -21,7 +21,7 @@ Labākie piedāvājumi ir saraksta augšā.
 - **Deal score** — katrs auto salīdzināts ar līdzīgiem no VISIEM avotiem (arī Latvija pret Vāciju); marku/modeļu nosaukumi tiek normalizēti ("Mercedes-Benz" = "Mercedes", "320d" = "320").
 - **Cenu skala** — redzams, kur cena atrodas starp līdzīgu auto lētāko un dārgāko.
 - **Cenu vēsture** — ja cena atkārtotā skenēšanā samazinās, tas tiek parādīts.
-- **Filtri** — marka, modelis, cena, gads, nobraukums, degviela, vietne, kārtošana.
+- **Meklēšana kā lielajos portālos** — marka → modeļu izvēlne ar sludinājumu skaitu, gads no–līdz, cena no–līdz, nobraukums, degviela, virsbūve (sedans, universālis, hečbeks, apvidus, minivens, kupeja, kabriolets), vietne, kārtošana. Virsbūvi ņem no vietnes datiem vai nosaka pēc modeļa.
 - **Demo dati** — 400 testa sludinājumi; prezentācija strādā arī bez interneta.
 - **Drošība** — validācija, XSS aizsardzība, admin parole, pieprasījumu limiti.
 
@@ -92,7 +92,7 @@ Jaunu vietni pievieno, uzrakstot jaunu failu `src/scrapers/`, kas atgriež sludi
 - Vienlaikus var notikt tikai viena skrāpēšana; 1,5 s pauze starp lapām, lai nenoslogotu ss.lv.
 
 ## Testi
-Automātiskie: `npm test` (26 testi). Manuālie scenāriji: skat. [TESTI.md](TESTI.md).
+Automātiskie: `npm test` (29 testi). Manuālie scenāriji: skat. [TESTI.md](TESTI.md).
 
 ## Ierobežojumi un nākotnes plāni
 - Ja kāda vietne maina lapas struktūru, parsētājs jāatjauno (katram ir tests ar paraugu).

@@ -3,6 +3,7 @@
 // lai varētu parādīt "cena samazināta".
 
 const fs = require('fs');
+const { bodyFor } = require('./makes');
 const path = require('path');
 
 const DATA_DIR = process.env.DATA_DIR || path.join(__dirname, '..', 'data');
@@ -37,7 +38,9 @@ function upsert(items) {
   const now = new Date().toISOString();
   let added = 0, updated = 0, priceDrops = 0;
 
-  for (const item of items) {
+  for (const raw of items) {
+    // Ja vietne nenorāda virsbūvi, nosakām to pēc modeļa
+    const item = { ...raw, body: raw.body || bodyFor(raw.make, raw.model) };
     const k = keyOf(item);
     if (index.has(k)) {
       const existing = all[index.get(k)];

@@ -20,7 +20,7 @@ const { normalizeMake, normalizeModel } = require('./makes');
 
 const norm = (s) => String(s || '').trim().toLowerCase();
 // Atslēga, pēc kuras auto uzskata par "to pašu modeli" arī starp dažādiem avotiem
-const modelKey = (l) => `${norm(normalizeMake(l.make))}|${norm(normalizeModel(l.model))}`;
+const modelKey = (l) => `${norm(normalizeMake(l.make))}|${norm(normalizeModel(l.model, l.make))}`;
 
 function isComparable(a, b) {
   if (a === b) return false;

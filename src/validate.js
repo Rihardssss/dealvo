@@ -1,7 +1,7 @@
 // Ievades validācija visiem API pieprasījumiem.
 // Viss, kas nāk no lietotāja, tiek pārbaudīts šeit, pirms nonāk līdz skrāperim vai datiem.
 
-const { MAKE_TABLE } = require('./makes');
+const { MAKE_TABLE, BODY_TYPES } = require('./makes');
 
 // slug → nosaukums (piem. 'bmw' → 'BMW'); skrāpēt var tikai šīs markas
 const MAKES = Object.fromEntries(Object.entries(MAKE_TABLE).map(([k, v]) => [k, v.name]));
@@ -66,7 +66,13 @@ function validateListingQuery(q = {}) {
     else out.fuel = q.fuel;
   }
 
+  if (q.body) {
+    if (!BODY_TYPES.includes(q.body)) errors.push(`body: atļauts ${BODY_TYPES.join(', ')}`);
+    else out.body = q.body;
+  }
+
   const numeric = [
+    ['minPrice', 1, 10_000_000],
     ['minYear', 1950, CURRENT_YEAR + 1],
     ['maxYear', 1950, CURRENT_YEAR + 1],
     ['maxPrice', 1, 10_000_000],
@@ -81,6 +87,9 @@ function validateListingQuery(q = {}) {
 
   if (out.minYear && out.maxYear && out.minYear > out.maxYear) {
     errors.push('minYear nevar būt lielāks par maxYear');
+  }
+  if (out.minPrice && out.maxPrice && out.minPrice > out.maxPrice) {
+    errors.push('minPrice nevar būt lielāka par maxPrice');
   }
 
   const sorts = ['deal', 'price', 'year', 'mileage', 'newest'];
