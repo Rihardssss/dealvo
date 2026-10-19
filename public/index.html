@@ -1,0 +1,69 @@
+<!doctype html>
+<html lang="lv">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>DealRadar — labākie auto piedāvājumi</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="wrap top-inner">
+      <div class="brand">
+        <span class="radar" aria-hidden="true"></span>
+        <div>
+          <h1>DealRadar</h1>
+          <p>Visi auto sludinājumi vienā vietā. Labākie piedāvājumi — augšā.</p>
+        </div>
+      </div>
+      <div class="stats" id="stats"></div>
+    </div>
+  </header>
+
+  <main class="wrap">
+    <section class="panel" aria-label="Datu ielāde">
+      <form id="scrapeForm" class="row">
+        <label>Marka
+          <select id="scrapeMake" name="make" required></select>
+        </label>
+        <label>Lapas
+          <select name="pages">
+            <option value="1">1</option><option value="2">2</option>
+            <option value="3" selected>3</option><option value="5">5</option>
+          </select>
+        </label>
+        <button type="submit" class="btn primary" id="scrapeBtn">Skenēt ss.lv</button>
+        <button type="button" class="btn ghost" id="demoBtn">Ielādēt demo datus</button>
+        <button type="button" class="btn ghost danger" id="clearBtn">Notīrīt</button>
+      </form>
+      <p class="status" id="status" role="status"></p>
+    </section>
+
+    <section class="panel" aria-label="Filtri">
+      <form id="filterForm" class="row">
+        <label>Marka <select name="make" id="filterMake"><option value="">Visas</option></select></label>
+        <label>Modelis <input name="model" placeholder="piem. Golf" maxlength="40"></label>
+        <label>Gads no <input name="minYear" type="number" min="1950" max="2027" placeholder="2010"></label>
+        <label>Cena līdz € <input name="maxPrice" type="number" min="1" placeholder="10000"></label>
+        <label>Nobraukums līdz <input name="maxMileage" type="number" min="0" step="1000" placeholder="200000"></label>
+        <label>Kārtot
+          <select name="sort">
+            <option value="deal">Labākais deals</option>
+            <option value="price">Lētākais</option>
+            <option value="year">Jaunākais gads</option>
+            <option value="mileage">Mazākais nobraukums</option>
+          </select>
+        </label>
+      </form>
+    </section>
+
+    <p class="count" id="count"></p>
+    <section id="grid" class="grid" aria-live="polite"></section>
+  </main>
+
+  <footer class="wrap foot">DealRadar · Victoria PX projektu nedēļa 2026 · Dati: ss.lv + demo avoti</footer>
+  <script src="app.js"></script>
+</body>
+</html>

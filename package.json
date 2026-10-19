@@ -1,0 +1,21 @@
+{
+  "name": "dealradar",
+  "version": "1.0.0",
+  "description": "DealRadar — savāc auto sludinājumus no vairākiem avotiem un atrod labākos piedāvājumus",
+  "main": "src/server.js",
+  "scripts": {
+    "start": "node src/server.js",
+    "dev": "node --watch src/server.js",
+    "seed": "node src/seed.js",
+    "test": "node --test test/*.test.js"
+  },
+  "author": "Rihards Indars",
+  "license": "MIT",
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "cheerio": "^1.0.0",
+    "express": "^4.21.2"
+  }
+}
