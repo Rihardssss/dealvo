@@ -3,6 +3,8 @@
 **Auto sludinājumu agregators, kas atrod labākos piedāvājumus.**
 Victoria PX projektu nedēļa, 19.–23.10.2026. Autors: Rihards Indars (PX23).
 
+🌐 **https://dealradar.riciboy.eu** (publicēšana: [DEPLOY.md](DEPLOY.md))
+
 ## Problēma
 Lai atrastu izdevīgu auto, cilvēkam jāpārlūko vairākas vietnes un pašam jāmin, vai cena ir laba.
 ss.lv nerāda, vai konkrētā cena ir zem vai virs tirgus.
@@ -18,7 +20,9 @@ Labākie piedāvājumi ir saraksta augšā.
 - **Deal score** — cena pret līdzīgu auto mediānu; birkas *super* (≥20%), *labs* (≥10%), *tirgus*, *dārgs*.
 - **Cenu vēsture** — ja sludinājuma cena atkārtotā skenēšanā samazinās, tas tiek parādīts.
 - **Filtri un kārtošana** — marka, modelis, gads, max cena, max nobraukums.
+- **Cenu skala** — katram auto redzams, kur tā cena atrodas starp līdzīgu auto lētāko un dārgāko.
 - **Ievades validācija** — gan serverī, gan pārlūkā.
+- **Admin aizsardzība** — publiskajā versijā datus maina tikai ar `ADMIN_TOKEN`.
 
 ## Palaišana
 Vajadzīgs **Node.js 22+**.
@@ -26,7 +30,7 @@ Vajadzīgs **Node.js 22+**.
 ```bash
 npm install
 npm run seed     # ielādē demo datus (nav obligāti)
-npm start        # → http://localhost:3000
+npm start        # uzbūvē Tailwind CSS un palaiž → http://localhost:3000
 npm test         # palaiž automātiskos testus
 ```
 
@@ -36,12 +40,16 @@ npm test         # palaiž automātiskos testus
 | Serveris | Node.js + Express | Viena valoda (JS) frontendā un backendā, vienkāršs REST API |
 | Skrāpēšana | `fetch` + Cheerio | ss.lv ir statisks HTML — nav vajadzīgs smags pārlūks (Puppeteer) |
 | Dati | JSON fails ar atomisku pierakstu | Prototipam pietiek, nav jāinstalē datubāze |
-| Frontend | HTML/CSS/JS bez ietvara | Ātri ielādējas, nav build soļa |
+| Frontend | HTML + JS bez ietvara | Ātri ielādējas, viegli saprotams kods |
+| Dizains | Tailwind CSS v4 (CLI) | Dizaina sistēma (`@theme` krāsas, fonti) vienā failā, gala CSS tikai ~27 KB |
+| Fonti | Bricolage Grotesque + Geist, hostēti lokāli | Ar latviešu burtiem, strādā bez interneta |
+| Hostings | Cloudflare Tunnel → dealradar.riciboy.eu | Bezmaksas HTTPS, nav jāatver porti |
 | Testi | `node:test` (iebūvēts) | Nav papildu atkarību |
 
 ## Arhitektūra
 ```
-public/            frontend (index.html, style.css, app.js)
+public/            frontend (index.html, app.js, fonts/; app.css tiek uzbūvēts)
+src/styles.css     Tailwind ievade un dizaina sistēma
 src/server.js      REST API
 src/scrapers/      avoti: sslv.js (īsts), demo.js (testa dati)
 src/deals.js       deal algoritms
@@ -73,10 +81,11 @@ Jaunu vietni pievieno, uzrakstot jaunu failu `src/scrapers/`, kas atgriež sludi
 - Visi parametri tiek validēti (tips, robežas, simboli); kļūdas atgriež `400`, nevis avāriju.
 - Viss teksts no sludinājumiem tiek "escape"-ots → nav XSS (pārbaudīts ar `<script>` sludinājuma nosaukumā).
 - Saites atveras tikai, ja tās ir `https://`, ar `rel="noopener noreferrer"`.
+- Skenēt/dzēst var tikai ar `ADMIN_TOKEN` (salīdzināts ar `timingSafeEqual`); limits 120 pieprasījumi minūtē no IP.
 - Vienlaikus var notikt tikai viena skrāpēšana; 1,5 s pauze starp lapām, lai nenoslogotu ss.lv.
 
 ## Testi
-Automātiskie: `npm test` (14 testi). Manuālie scenāriji: skat. [TESTI.md](TESTI.md).
+Automātiskie: `npm test` (15 testi). Manuālie scenāriji: skat. [TESTI.md](TESTI.md).
 
 ## Ierobežojumi un nākotnes plāni
 - Ja ss.lv maina HTML struktūru, parsētājs jāatjauno (tam ir tests ar paraugu).

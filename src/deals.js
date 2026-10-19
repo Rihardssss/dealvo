@@ -53,9 +53,19 @@ function scoreListings(listings) {
     if (comps.length < MIN_COMPARABLES) {
       return { ...l, marketPrice: null, dealScore: null, dealLabel: null, comparables: comps.length };
     }
-    const marketPrice = Math.round(median(comps.map((c) => c.price)));
+    const prices = comps.map((c) => c.price);
+    const marketPrice = Math.round(median(prices));
     const dealScore = Math.round(((marketPrice - l.price) / marketPrice) * 1000) / 10;
-    return { ...l, marketPrice, dealScore, dealLabel: labelFor(dealScore), comparables: comps.length };
+    return {
+      ...l,
+      marketPrice,
+      dealScore,
+      dealLabel: labelFor(dealScore),
+      comparables: comps.length,
+      // Līdzīgo auto cenu diapazons — frontendā zīmē "cenu skalu"
+      rangeMin: Math.min(...prices, l.price),
+      rangeMax: Math.max(...prices, l.price),
+    };
   });
 }
 

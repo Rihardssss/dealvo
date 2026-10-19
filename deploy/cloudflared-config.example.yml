@@ -1,0 +1,8 @@
+# Nokopē uz ~/.cloudflared/config.yml un aizvieto <TUNNEL_ID> un ceļu
+tunnel: <TUNNEL_ID>
+credentials-file: C:\Users\<TAVS_LIETOTĀJS>\.cloudflared\<TUNNEL_ID>.json
+
+ingress:
+  - hostname: dealradar.riciboy.eu
+    service: http://localhost:3000
+  - service: http_status:404

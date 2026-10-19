@@ -1,12 +1,12 @@
 # Pārbaudes scenāriji
 
-Automātiskie testi: `npm test` → 14/14 izdodas (ss.lv parsētājs, deal algoritms, API).
+Automātiskie testi: `npm test` → 15/15 izdodas (ss.lv parsētājs, deal algoritms, API, admin aizsardzība).
 
 ## 1. Lietotājs atrod labāko dealu
 | | |
 |---|---|
-| Soļi | Atver lapu → "Ielādēt demo datus" → kārtošana "Labākais deals" |
-| Sagaidāmais | Augšā auto ar lielāko "−% zem tirgus"; katrā kartē redzama tirgus cena |
+| Soļi | Atver lapu → "Ielādēt demo datus" → kārtošana "Lielākā atlaide" |
+| Sagaidāmais | Augšā auto ar lielāko "−% zem tirgus"; katrā rindā redzama cenu skala |
 | Rezultāts | ✅ Izdodas |
 
 ## 2. Filtrēšana

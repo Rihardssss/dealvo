@@ -4,8 +4,11 @@
   "description": "DealRadar — savāc auto sludinājumus no vairākiem avotiem un atrod labākos piedāvājumus",
   "main": "src/server.js",
   "scripts": {
+    "build:css": "tailwindcss -i src/styles.css -o public/app.css --minify",
+    "watch:css": "tailwindcss -i src/styles.css -o public/app.css --watch",
+    "prestart": "npm run build:css",
     "start": "node src/server.js",
-    "dev": "node --watch src/server.js",
+    "dev": "npm run build:css && node --watch src/server.js",
     "seed": "node src/seed.js",
     "test": "node --test test/*.test.js"
   },
@@ -17,5 +20,9 @@
   "dependencies": {
     "cheerio": "^1.0.0",
     "express": "^4.21.2"
+  },
+  "devDependencies": {
+    "@tailwindcss/cli": "^4.3.3",
+    "tailwindcss": "^4.3.3"
   }
 }

@@ -7,6 +7,7 @@ const { scoreListings } = require('./deals');
 const { MAKES, validateScrapeRequest, validateListingQuery } = require('./validate');
 
 const app = express();
+app.set('trust proxy', 'loopback');
 app.use(express.json({ limit: '10kb' }));
 app.use(express.static(path.join(__dirname, '..', 'public')));
 
@@ -18,6 +19,33 @@ app.use((req, res, next) => {
 });
 
 let scrapeInProgress = false;
+
+// Admin aizsardzība: kad lapa ir publiska internetā, datus mainīt (skenēt, ielādēt demo,
+// dzēst) var tikai ar ADMIN_TOKEN. Lokāli bez ADMIN_TOKEN viss ir atļauts.
+const ADMIN_TOKEN = process.env.ADMIN_TOKEN || '';
+const crypto = require('crypto');
+function requireAdmin(req, res, next) {
+  if (!ADMIN_TOKEN) return next();
+  const given = Buffer.from(String(req.get('x-admin-token') || ''));
+  const expected = Buffer.from(ADMIN_TOKEN);
+  if (given.length === expected.length && crypto.timingSafeEqual(given, expected)) return next();
+  res.status(401).json({ errors: ['Nepareiza admin parole'] });
+}
+
+// Vienkāršs pieprasījumu limits: max 120 pieprasījumi minūtē no vienas IP
+const hits = new Map();
+app.use('/api', (req, res, next) => {
+  const ip = req.get('cf-connecting-ip') || req.ip;
+  const now = Date.now();
+  const h = hits.get(ip) || { n: 0, t: now };
+  if (now - h.t > 60_000) { h.n = 0; h.t = now; }
+  h.n++;
+  hits.set(ip, h);
+  if (h.n > 120) return res.status(429).json({ errors: ['Pārāk daudz pieprasījumu, pagaidi minūti'] });
+  next();
+});
+
+app.get('/api/config', (req, res) => res.json({ adminRequired: Boolean(ADMIN_TOKEN) }));
 
 app.get('/api/makes', (req, res) => {
   res.json(Object.entries(MAKES).map(([slug, name]) => ({ slug, name })));
@@ -61,7 +89,7 @@ app.get('/api/stats', (req, res) => {
   });
 });
 
-app.post('/api/scrape', async (req, res) => {
+app.post('/api/scrape', requireAdmin, async (req, res) => {
   const v = validateScrapeRequest(req.body);
   if (!v.ok) return res.status(400).json({ errors: v.errors });
   if (scrapeInProgress) return res.status(429).json({ errors: ['Skrāpēšana jau notiek, pagaidi'] });
@@ -79,12 +107,12 @@ app.post('/api/scrape', async (req, res) => {
   }
 });
 
-app.post('/api/demo', (req, res) => {
+app.post('/api/demo', requireAdmin, (req, res) => {
   const result = db.upsert(demo.generate());
   res.json({ source: 'demo', ...result });
 });
 
-app.delete('/api/listings', (req, res) => {
+app.delete('/api/listings', requireAdmin, (req, res) => {
   db.clear();
   res.json({ ok: true });
 });
