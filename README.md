@@ -41,8 +41,8 @@ npm test         # palaiž automātiskos testus
 | Skrāpēšana | `fetch` + Cheerio | ss.lv ir statisks HTML — nav vajadzīgs smags pārlūks (Puppeteer) |
 | Dati | JSON fails ar atomisku pierakstu | Prototipam pietiek, nav jāinstalē datubāze |
 | Frontend | HTML + JS bez ietvara | Ātri ielādējas, viegli saprotams kods |
-| Dizains | Tailwind CSS v4 (CLI), tumšais "nakts radara" stils | Dizaina sistēma (`@theme` krāsas, fonti) vienā failā; radars ar animētu staru rāda labākos dealus |
-| Fonti | Bricolage Grotesque + Geist, hostēti lokāli | Ar latviešu burtiem, strādā bez interneta |
+| Dizains | Tailwind CSS v4 (CLI), minimāls stils | Dizaina sistēma (`@theme`) vienā failā; krāsa tikai nozīmei: zaļš = zem tirgus, oranžs = virs |
+| Fonts | Geist, hostēts lokāli | Ar latviešu burtiem, strādā bez interneta |
 | Hostings | Cloudflare Tunnel → dealradar.riciboy.eu | Bezmaksas HTTPS, nav jāatver porti |
 | Testi | `node:test` (iebūvēts) | Nav papildu atkarību |
 
