@@ -26,6 +26,30 @@ const clean = (t) => String(t ?? '').replace(/\s+/g, ' ').trim();
 const PHONE = /(\+?\d[\d\s()-]{6,}\d)/g;
 const noPhones = (t) => clean(t).replace(PHONE, '[tālrunis oriģinālajā sludinājumā]');
 
+// Apraksts kā tīrs teksts: <br> un <p> → jaunas rindas, pārējie HTML tagi prom,
+// &amp; &nbsp; &#39; u.c. → parastas rakstzīmes. Rindkopas saglabājas.
+const ENTITIES = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'", nbsp: ' ', bull: '•', ndash: '–', mdash: '—', euro: '€', auml: 'ä', ouml: 'ö', uuml: 'ü', Auml: 'Ä', Ouml: 'Ö', Uuml: 'Ü', szlig: 'ß' };
+function decodeEntities(t) {
+  return t.replace(/&(#x[\da-f]+|#\d+|[a-z]+);/gi, (m, e) => {
+    if (e[0] === '#') {
+      const n = e[1].toLowerCase() === 'x' ? parseInt(e.slice(2), 16) : Number(e.slice(1));
+      return Number.isFinite(n) && n > 0 && n < 0x110000 ? String.fromCodePoint(n) : m;
+    }
+    return ENTITIES[e] ?? m;
+  });
+}
+function descText(raw) {
+  let t = String(raw ?? '');
+  // Dažreiz tagi ir kodēti kā &lt;br /&gt; — tos vispirms atkodē
+  t = t.replace(/&lt;(\s*\/?\s*(?:br|p|div|li|strong|b|i|u|em|span|ul|ol|h\d)\b[^&]*?)&gt;/gi, '<$1>');
+  t = t.replace(/<\s*br\s*\/?>/gi, '\n').replace(/<\/\s*(p|div|li|h\d)\s*>/gi, '\n').replace(/<\s*li[^>]*>/gi, '• ')
+    .replace(/<\/?[a-z][^>]*>/gi, '');
+  t = decodeEntities(t);
+  t = t.split('\n').map((line) => line.replace(/[ \t\u00a0]+/g, ' ').trim()).join('\n')
+    .replace(/\n{3,}/g, '\n\n').trim();
+  return t.replace(PHONE, '[tālrunis oriģinālajā sludinājumā]').slice(0, 2000) || null;
+}
+
 function sellerType(raw) {
   const t = String(raw ?? '').toLowerCase();
   if (/dealer|händler|haendler|company|uzņēm|dīler|autosalon|organization|autohaus/.test(t)) return 'dīleris';
@@ -60,9 +84,10 @@ function parseSslv(html) {
 
   const descEl = $('#msg_div_msg').clone();
   descEl.find('table, script').remove();
+  descEl.find('br').replaceWith('\n');
   return {
     photos: [...new Set(photos)],
-    description: noPhones(descEl.text()).slice(0, 2000) || null,
+    description: descText(descEl.text()),
     specs,
     seller: { type: company ? 'dīleris' : 'privātpersona', name: company, city },
   };
@@ -104,7 +129,7 @@ function parseAutoscout(html) {
   const type = sellerType(seller.type ?? seller.sellerType);
   return {
     photos: images.map((i) => (typeof i === 'string' ? i : i?.url ?? i?.src)).filter((u) => typeof u === 'string' && u.startsWith('http')).slice(0, 20),
-    description: noPhones(findKey(d, 'description') ?? '').slice(0, 2000) || null,
+    description: descText(findKey(d, 'description')),
     specs,
     seller: {
       type,
@@ -133,7 +158,7 @@ function parseJsonLd(html) {
     if (car.color) specs['Krāsa'] = clean(car.color);
     return {
       photos: [].concat(car.image || []).filter((u) => typeof u === 'string' && u.startsWith('http')).slice(0, 20),
-      description: noPhones(car.description || '').slice(0, 2000) || null,
+      description: descText(car.description),
       specs,
       seller: {
         type,
@@ -156,4 +181,4 @@ async function fetchDetails(listing) {
   return parseDetails(await fetchHtml(listing.url, label), listing.source);
 }
 
-module.exports = { fetchDetails, parseDetails, parseSslv, parseAutoscout, parseJsonLd, isAllowedUrl, sellerType, digits };
+module.exports = { fetchDetails, parseDetails, parseSslv, parseAutoscout, parseJsonLd, isAllowedUrl, descText, sellerType, digits };

@@ -2,7 +2,7 @@
 // (bildes, apraksts, tehniskie dati, pārdevējs) + līdzīgie auto.
 
 const db = require('./db');
-const { fetchDetails } = require('./scrapers/details');
+const { fetchDetails, descText } = require('./scrapers/details');
 const { scoreListings, isComparable } = require('./deals');
 
 const CACHE_MS = 24 * 60 * 60 * 1000;
@@ -55,7 +55,7 @@ async function getListing(source, externalId) {
     ...me,
     details: {
       photos: d.photos?.length ? d.photos : base.photos,
-      description: d.description,
+      description: descText(d.description),  // arī vecajiem saglabātajiem aprakstiem
       specs: { ...base.specs, ...d.specs },
       seller: mergeSeller(item.seller, d.seller),
     },
