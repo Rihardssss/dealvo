@@ -40,7 +40,32 @@ cloudflared tunnel run dealvo
 ```
 Atver **https://dealvo.riciboy.eu** 🎉
 
-Lai tunelis startētu automātiski kopā ar datoru: `cloudflared service install`.
+## Uz Linux servera (24/7) — ieteicamais veids
+
+1. Ar WinSCP iekopē tuneļa atslēgu `C:\Users\indar\.cloudflared\ad81e4ab-bb8f-492b-bc94-18fbb159ddcf.json` uz servera mapi `~/.cloudflared/`.
+2. Serverī (SSH):
+   ```
+   git clone https://github.com/Rihardssss/dealvo.git ~/dealvo
+   bash ~/dealvo/deploy/setup-server.sh
+   ```
+3. Windows datorā aptur veco versiju: `deploy\stop-dealvo.cmd` un `schtasks /Delete /TN Dealvo /F`.
+
+Atjaunināšana pēc jauna `git push`: `bash ~/dealvo/deploy/update-server.sh`.
+Žurnāli: `journalctl -u dealvo -f`. Admin parole: `cat ~/dealvo/.env`.
+
+## 6. Lai lapa strādātu vienmēr (Windows dators)
+
+Mapē `deploy/` ir skripti, kas palaiž serveri un tuneli fonā un restartē tos, ja tie apstājas:
+
+| Fails | Ko dara |
+|---|---|
+| `start-dealvo.cmd` | palaiž serveri un tuneli (minimizētos logos) |
+| `stop-dealvo.cmd` | aptur abus |
+| `install-autostart.cmd` | vienu reizi: Dealvo startējas pats, kad ielogojies Windows |
+
+Žurnāli: `data/server.log` un `data/tunnel.log`.
+
+Lai dators neaizmigtu: `powercfg /change standby-timeout-ac 0`.
 
 ## Svarīgi prezentācijas dienā
 - Datoram ar serveri un tuneli jābūt ieslēgtam un tīklā.

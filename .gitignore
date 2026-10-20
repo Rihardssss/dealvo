@@ -5,3 +5,4 @@ data/*.migrated
 .env
 .DS_Store
 public/app.css
+data/*.log
