@@ -41,3 +41,12 @@ test('nesalīdzina ar citu modeli, citu gadu vai ļoti atšķirīgu nobraukumu',
   const t = scoreListings(list).find((l) => l.externalId === 'target');
   assert.strictEqual(t.comparables, 0);
 });
+
+test('ja līdzīgo ir maz, meklē plašāk un pielāgo cenu pēc gada', () => {
+  const car = (id, year, price, mileage = 150000) => ({ source: 'x', externalId: id, make: 'BMW', model: '320', year, price, mileage });
+  const list = [car('a', 2010, 5000), car('b', 2013, 7000), car('c', 2007, 4000), car('d', 2014, 9000)];
+  const [a] = scoreListings(list);
+  assert.strictEqual(a.comparables, 3);
+  assert.ok(a.marketPrice > 4000 && a.marketPrice < 7000, `tirgus cena ${a.marketPrice}`);
+  assert.ok(a.dealScore != null);
+});

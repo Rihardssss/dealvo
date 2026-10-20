@@ -40,7 +40,7 @@ Atver http://localhost:3000
 
 ## Kā aprēķina cenu
 
-Katram auto atrod līdzīgus auto (tā pati marka un modelis, gads ±2, nobraukums ±60 000 km). No to cenām ņem mediānu, tā ir tirgus cena. Ja auto ir lētāks par to, tas ir labs piedāvājums.
+Katram auto atrod līdzīgus auto (tā pati marka un modelis, gads ±2, nobraukums ±60 000 km). Ja tādu ir mazāk par 3, meklē plašāk (±3 un ±5 gadi), un citu gadu auto cenu pārrēķina uz šī auto gadu (ap 8% vērtības zudums gadā). No to cenām ņem mediānu, tā ir tirgus cena. Ja auto ir lētāks par to, tas ir labs piedāvājums.
 
 ## Drošība
 

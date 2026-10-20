@@ -8,6 +8,14 @@
 const MIN_COMPARABLES = 3;
 const YEAR_RANGE = 2;
 const MILEAGE_RANGE = 60_000;
+// Ja līdzīgo ir par maz, meklējam plašāk. Plašākajos līmeņos citu gadu auto cenu pielāgojam
+// pēc vecuma (auto zaudē ap 8% vērtības gadā), lai 2010. un 2014. gada auto būtu salīdzināmi.
+const LEVELS = [
+  { years: YEAR_RANGE, km: MILEAGE_RANGE, adjust: false },
+  { years: 3, km: 90_000, adjust: true },
+  { years: 5, km: 150_000, adjust: true },
+];
+const YEARLY_LOSS = 0.08;
 
 function median(nums) {
   if (!nums.length) return null;
@@ -22,13 +30,17 @@ const norm = (s) => String(s || '').trim().toLowerCase();
 // Atslēga, pēc kuras auto uzskata par "to pašu modeli" arī starp dažādiem avotiem
 const modelKey = (l) => `${norm(normalizeMake(l.make))}|${norm(normalizeModel(l.model, l.make))}`;
 
-function isComparable(a, b) {
+function isComparable(a, b, level = LEVELS[0]) {
   if (a === b) return false;
+  if (a.source === b.source && a.externalId === b.externalId) return false;
   if (modelKey(a) !== modelKey(b)) return false;
-  if (Math.abs(a.year - b.year) > YEAR_RANGE) return false;
-  if (a.mileage != null && b.mileage != null && Math.abs(a.mileage - b.mileage) > MILEAGE_RANGE) return false;
+  if (Math.abs(a.year - b.year) > level.years) return false;
+  if (a.mileage != null && b.mileage != null && Math.abs(a.mileage - b.mileage) > level.km) return false;
   return true;
 }
+
+// Līdzīgā auto cena, pārrēķināta uz šī auto gadu
+const adjusted = (l, c, level) => (level.adjust ? c.price * (1 - YEARLY_LOSS) ** (c.year - l.year) : c.price);
 
 function labelFor(score) {
   if (score == null) return null;
@@ -53,11 +65,17 @@ function scoreListings(listings) {
 
   return listings.map((l) => {
     const group = groups.get(modelKey(l)) || [];
-    const comps = group.filter((o) => isComparable(l, o));
+    let comps = [];
+    let level = LEVELS[0];
+    for (const lv of LEVELS) {
+      comps = group.filter((o) => isComparable(l, o, lv));
+      level = lv;
+      if (comps.length >= MIN_COMPARABLES) break;
+    }
     if (comps.length < MIN_COMPARABLES) {
       return { ...l, marketPrice: null, dealScore: null, dealLabel: null, comparables: comps.length };
     }
-    const prices = comps.map((c) => c.price);
+    const prices = comps.map((c) => Math.round(adjusted(l, c, level)));
     const marketPrice = Math.round(median(prices));
     const dealScore = Math.round(((marketPrice - l.price) / marketPrice) * 1000) / 10;
     return {

@@ -1,0 +1,5 @@
+name = "dealvo-sslv"
+main = "../cloudflare-worker.js"
+compatibility_date = "2026-10-01"
+workers_dev = true
+routes = [{ pattern = "sslv.riciboy.eu", custom_domain = true }]
