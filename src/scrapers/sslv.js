@@ -3,6 +3,7 @@
 // lai to varētu testēt ar saglabātu HTML failu bez interneta.
 
 const cheerio = require('cheerio');
+const { fetchHtml } = require('./http');
 
 const BASE = 'https://www.ss.lv';
 const USER_AGENT = 'Mozilla/5.0 (Dealvo skolas projekts; +https://github.com/Rihardssss)';
@@ -102,14 +103,8 @@ function parseListPage(html, makeName) {
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-async function fetchPage(url) {
-  const res = await fetch(url, {
-    headers: { 'User-Agent': USER_AGENT, 'Accept-Language': 'lv,en;q=0.8' },
-    signal: AbortSignal.timeout(15000),
-  });
-  if (!res.ok) throw new Error(`ss.lv atbildēja ar ${res.status} (${url})`);
-  return res.text();
-}
+// Kopīgā fetchHtml: IPv4, atkārtots mēģinājums un skaidrs kļūdas iemesls
+const fetchPage = (url) => fetchHtml(url, 'ss.lv', { 'User-Agent': USER_AGENT, 'Accept-Language': 'lv,en;q=0.8' });
 
 /**
  * Lejupielādē un parsē vienas markas pirmās N lapas.
