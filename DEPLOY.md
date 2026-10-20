@@ -53,6 +53,12 @@ Atver **https://dealvo.riciboy.eu** 🎉
 Atjaunināšana pēc jauna `git push`: `bash ~/dealvo/deploy/update-server.sh`.
 Žurnāli: `journalctl -u dealvo -f`. Admin parole: `cat ~/dealvo/.env`.
 
+### ss.lv uz servera (Cloudflare Worker)
+ss.lv bloķē datu centru IP adreses, tāpēc serveris ss.lv lasa caur bezmaksas Cloudflare Worker:
+1. Cloudflare → Workers & Pages → Create → Worker, nosaukums `dealvo-sslv` → Deploy → Edit code → iekopē `deploy/cloudflare-worker.js` → Deploy.
+2. Worker → Settings → Variables and Secrets → Add: tips Secret, nosaukums `KEY`, vērtība — gara nejauša parole.
+3. Serverī `~/dealvo/.env` pievieno `SCRAPE_PROXY=https://dealvo-sslv.<konts>.workers.dev` un `SCRAPE_PROXY_KEY=<tā pati parole>`, tad `sudo systemctl restart dealvo`.
+
 ## 6. Lai lapa strādātu vienmēr (Windows dators)
 
 Mapē `deploy/` ir skripti, kas palaiž serveri un tuneli fonā un restartē tos, ja tie apstājas:

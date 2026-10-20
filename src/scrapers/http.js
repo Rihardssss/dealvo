@@ -35,7 +35,24 @@ async function fetchHtml(url, source, extraHeaders = {}, attempt = 1) {
   return html;
 }
 
+// Daļa vietņu (ss.lv) bloķē datu centru IP adreses. Tādām vietnēm pieprasījums iet caur
+// mūsu Cloudflare Worker (deploy/cloudflare-worker.js), ja .env ir SCRAPE_PROXY un SCRAPE_PROXY_KEY.
+const PROXY_HOSTS = /^(www\.)?ss\.lv$/;
+function viaProxy(url) {
+  if (!process.env.SCRAPE_PROXY) return null;
+  try {
+    return PROXY_HOSTS.test(new URL(url).hostname) ? `${process.env.SCRAPE_PROXY.replace(/\/$/, '')}/?url=${encodeURIComponent(url)}` : null;
+  } catch { return null; }
+}
+
 function rawFetch(url, extraHeaders) {
+  const proxied = viaProxy(url);
+  if (proxied) {
+    return fetch(proxied, {
+      headers: { 'x-key': process.env.SCRAPE_PROXY_KEY || '', 'x-ua': extraHeaders['User-Agent'] || USER_AGENT },
+      signal: AbortSignal.timeout(25000),
+    });
+  }
   return fetch(url, {
     headers: {
       'User-Agent': USER_AGENT,
