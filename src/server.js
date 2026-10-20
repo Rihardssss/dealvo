@@ -15,7 +15,22 @@ const { MAKES, validateScrapeRequest, validateListingQuery } = require('./valida
 const app = express();
 app.set('trust proxy', 'loopback');
 app.use(express.json({ limit: '10kb' }));
-app.use(express.static(path.join(__dirname, '..', 'public')));
+// Lapa: app.js un app.css saitēm pieliekam versiju (?v=...), lai pēc atjaunināšanas
+// pārlūks un Cloudflare neizmantotu vecos failus no keša.
+const PUBLIC_DIR = path.join(__dirname, '..', 'public');
+const VERSION = Date.now().toString(36);
+const fs = require('fs');
+function sendIndex(req, res) {
+  const html = fs.readFileSync(path.join(PUBLIC_DIR, 'index.html'), 'utf8')
+    .replace(/(href|src)="(app\.(?:css|js))"/g, `$1="$2?v=${VERSION}"`);
+  res.set('Cache-Control', 'no-cache').type('html').send(html);
+}
+app.get(['/', '/index.html'], sendIndex);
+app.use(express.static(PUBLIC_DIR, {
+  setHeaders: (res, file) => {
+    if (/\.(js|css)$/.test(file)) res.set('Cache-Control', 'public, max-age=31536000, immutable');
+  },
+}));
 
 // Vienkāršas drošības galvenes
 app.use((req, res, next) => {
