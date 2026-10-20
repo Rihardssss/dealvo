@@ -6,6 +6,7 @@ const { SOURCES, scrapeMake } = require('./scrapers');
 const { scoreListings } = require('./deals');
 const { searchListings, modelsFor } = require('./search');
 const assistant = require('./assistant');
+const translate = require('./translate');
 const { getListing } = require('./listing-details');
 const { createAutoScan } = require('./autoscan');
 const { MAKE_TABLE } = require('./makes');
@@ -32,7 +33,10 @@ const autoscan = createAutoScan({
   scrape: scrapeMake,
   makes: MAKE_TABLE,
   sources: (process.env.AUTO_SCAN_SOURCES || 'sslv,autoscout24').split(',').map((s) => s.trim()).filter((s) => SOURCES[s]),
-  pages: Number(process.env.AUTO_SCAN_PAGES) || 2,
+  // Lapas katram avotam: ss.lv ~30 auto lapā, AutoScout24 20 auto lapā
+  pages: process.env.AUTO_SCAN_PAGES
+    ? Number(process.env.AUTO_SCAN_PAGES)
+    : { sslv: 5, autoscout24: 10, mobilede: 2 },
   staleMinutes: Number(process.env.AUTO_SCAN_STALE_MINUTES) || 60,
 });
 
@@ -117,6 +121,18 @@ app.post('/api/assistant', async (req, res) => {
   res.json(await assistant.ask(req.body.question, req.body.context, req.body.history));
 });
 
+// Tulkošana (lapas valodas izvēle un "Tulkot aprakstu")
+app.post('/api/translate', async (req, res) => {
+  const v = translate.validateTranslate(req.body);
+  if (!v.ok) return res.status(400).json({ errors: v.errors });
+  try {
+    res.json({ texts: await translate.translateTexts(v.value.texts, v.value.to) });
+  } catch (err) {
+    console.error('Tulkošanas kļūda:', err.message);
+    res.status(502).json({ errors: ['Tulkošana šobrīd nav pieejama'] });
+  }
+});
+
 app.get('/api/scan-status', (req, res) => res.json({ enabled: AUTO_SCAN, ...autoscan.status() }));
 
 app.get('/api/stats', (req, res) => {
@@ -170,7 +186,7 @@ app.use((err, req, res, next) => {
 const PORT = Number(process.env.PORT) || 3000;
 if (require.main === module) {
   app.listen(PORT, () => console.log(`Dealvo darbojas: http://localhost:${PORT}`));
-  if (AUTO_SCAN) autoscan.start(Number(process.env.AUTO_SCAN_MINUTES) || 10);
+  if (AUTO_SCAN) autoscan.start(Number(process.env.AUTO_SCAN_MINUTES) || 3);
 }
 
 module.exports = app;

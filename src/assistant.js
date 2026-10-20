@@ -17,6 +17,7 @@
 
 const { searchListings, getScored } = require('./search');
 const { validateListingQuery, MAKES } = require('./validate');
+const { MODEL_CATALOG } = require('./makes');
 
 const API_URL = 'https://api.anthropic.com/v1/messages';
 const MODEL = process.env.ANTHROPIC_MODEL || 'claude-haiku-5-5';
@@ -37,6 +38,40 @@ const MAKE_WORDS = {
   bembis: 'bmw', bēmītis: 'bmw', audiks: 'audi', škoda: 'skoda', citroën: 'citroen', tojota: 'toyota',
 };
 
+// Modeļi no kataloga: "golfs" → VW Golf, "octavia" → Skoda Octavia, "320d" → BMW 320.
+// Ciparu modeļus (Mazda 3, Peugeot 308) atpazīstam tikai tad, ja marka arī ir minēta.
+const SLUG_BY_NAME = Object.fromEntries(Object.entries(MAKES).map(([slug, name]) => [name, slug]));
+const MODEL_WORDS = Object.entries(MODEL_CATALOG).flatMap(([makeName, models]) =>
+  Object.keys(models).map((model) => ({ model, make: SLUG_BY_NAME[makeName], numeric: /^\d+$/.test(model) })))
+  .filter((m) => m.make)
+  .sort((a, b) => b.model.length - a.model.length);
+
+function findModel(t, make) {
+  for (const m of MODEL_WORDS) {
+    if (make && m.make !== make) continue;
+    const w = m.model.toLowerCase().replace(/[-]/g, '\\-');
+    // "320d" bez markas → BMW 320
+    if (m.numeric && !make && m.make === 'bmw' && new RegExp(`[\\s,.?!(]${w}[di][\\s,.?!)]`).test(t)) return m;
+    // Ciparu un īsos modeļus (Mazda 3, Mercedes C, Lexus ES — "es" ir arī vārds) — tikai ar marku
+    const short = m.numeric || (m.model.length <= 2 && !/\d/.test(m.model));
+    if (short && !make) continue;
+    // Gariem modeļiem atļaujam latviešu galotnes: golfs, golfu, passatu, octaviu
+    const ending = m.model.length >= 4 && !/\d/.test(m.model) ? '(?:s|u|a|am|ā|i|us)?' : m.numeric ? '(?:[di]|xd|xi)?' : '';
+    if (new RegExp(`[\\s,.?!(]${w}${ending}[\\s,.?!)]`).test(t)) return m;
+  }
+  return null;
+}
+
+// Mērķis → virsbūve (ja lietotājs nenosauc virsbūvi pats)
+const PURPOSES = [
+  [/ģimen|gimen|bērn|bern|family/, 'universālis', 'ģimenei ērtāks ir universālis ar lielu bagāžnieku'],
+  [/pilsēt|pilset|students?|studentam|pirm(ais|o) auto|city/, 'hečbeks', 'pilsētai un pirmajam auto parasti der kompakts hečbeks'],
+  [/bezceļ|bezcel|lauk|ziem|off-?road|4x4|pilnpiedz/, 'apvidus', 'laukiem un ziemai noderēs apvidus auto'],
+];
+
+const HELP_RE = /^(sveiki|sveiks|čau|cau|labdien|hi|hello|hey|palīdz|palidz|ko (tu )?(māki|proti|vari)|help)\b/;
+const PRICE_Q_RE = /cik (maksā|maksa|izmaksā|vidēji|parasti)|vidēj(a|ā) cena|tirgus cena|kāda ir cena|how much|average price/;
+
 function num(text) {
   const t = String(text).toLowerCase().replace(/\s/g, '').replace(',', '.');
   const k = /k$|tūkst/.test(t);
@@ -52,9 +87,23 @@ function parseQuestion(q) {
     if (new RegExp(`[\\s,.?!]${word.replace(/[-]/g, '\\-')}[\\s,.?!]`).test(t)) { f.make = slug; break; }
   }
 
-  const price = t.match(/(?:līdz|max|maks\.?|zem|lētāk(?:s|u)? par|budžets?)\s*([\d\s.,]+k?)\s*(?:€|eur|eiro)?/)
+  {
+    const m = findModel(t, f.make);
+    if (m) { f.make = m.make; f.model = m.model; }
+  }
+
+  // Cenu diapazons: "no 3000 līdz 6000", "3000-6000 €", "starp 3k un 6k"
+  const range = t.match(/(?:no|starp|between|from)?\s*(\d[\d\s.,]*k?)\s*(?:-|–|līdz|un|to|and)\s*(\d[\d\s.,]*k?)\s*(?:€|eur|eiro)/)
+    || t.match(/(?:starp|between)\s*(\d[\d.,]*k?)\s*(?:un|and|-)\s*(\d[\d.,]*k?)/);
+  if (range) {
+    const a = num(range[1]);
+    const b = num(range[2]);
+    if (a >= 300 && b > a && b <= 500000) { f.minPrice = a; f.maxPrice = b; }
+  }
+
+  const price = !f.maxPrice && (t.match(/(?:līdz|max|maks\.?|zem|lētāk(?:s|u)? par|budžets?|under|below|up to|max\.?)\s*([\d\s.,]+k?)\s*(?:€|eur|eiro)?/)
     || t.match(/([\d\s.,]+k?)\s*(?:€|eur|eiro)/)
-    || t.match(/\s(\d{1,3}(?:[.,]\d)?k)(?=[\s,.]|$)/);
+    || t.match(/\s(\d{1,3}(?:[.,]\d)?k)(?=[\s,.]|$)/));
   if (price) {
     const n = num(price[1]);
     if (n && n >= 300 && n <= 500000) f.maxPrice = n;
@@ -67,27 +116,30 @@ function parseQuestion(q) {
     if (n) f.maxMileage = n;
   }
 
-  const yearFrom = t.match(/(?:pēc|no|sākot no|jaunāk(?:s|u)? par|vismaz)\s*(19[89]\d|20[0-3]\d)/) || t.match(/(19[89]\d|20[0-3]\d)\s*\+/);
-  if (yearFrom) f.minYear = Number(yearFrom[1]) + (/pēc|jaunāk/.test(yearFrom[0]) ? 1 : 0);
+  const yearFrom = t.match(/(?:pēc|no|sākot no|jaunāk(?:s|u)? par|vismaz|after|newer than|from)\s*(19[89]\d|20[0-3]\d)/) || t.match(/(19[89]\d|20[0-3]\d)\s*\+/);
+  if (yearFrom) f.minYear = Number(yearFrom[1]) + (/pēc|jaunāk|after|newer/.test(yearFrom[0]) ? 1 : 0);
   const yearTo = t.match(/(?:līdz|ne jaunāk(?:s|u)? par)\s*(19[89]\d|20[0-3]\d)\s*(?:g|gad)/);
   if (yearTo) f.maxYear = Number(yearTo[1]);
   if (/jaun(s|u|āk)\b|jauns auto/.test(t) && !f.minYear) f.minYear = CURRENT_YEAR - 5;
 
   if (/dīze[lļ]|dize[lļ]|diesel/.test(t)) f.fuel = 'dīzelis';
-  else if (/benzīn|benzin/.test(t)) f.fuel = 'benzīns';
+  else if (/benzīn|benzin|petrol|gasoline/.test(t)) f.fuel = 'benzīns';
   else if (/hibrīd|hibrid|hybrid/.test(t)) f.fuel = 'hibrīds';
   else if (/elektr|electric|\bev\b/.test(t)) f.fuel = 'elektro';
 
   const bodies = [
-    [/univers|kombi/, 'universālis'], [/apvid|suv|džip|dzip|krosover/, 'apvidus'], [/sedan/, 'sedans'],
+    [/univers|kombi|wagon|estate|touring|avant/, 'universālis'], [/apvid|suv|džip|dzip|krosover/, 'apvidus'], [/sedan/, 'sedans'],
     [/hečbek|hecbek|hatch/, 'hečbeks'], [/miniven|ģimenes auto|vens\b/, 'minivens'],
     [/kupej|coupe/, 'kupeja'], [/kabriol|cabrio/, 'kabriolets'],
   ];
   for (const [re, body] of bodies) if (re.test(t)) { f.body = body; break; }
+  if (!f.body && !f.model) {
+    for (const [re, body] of PURPOSES) if (re.test(t)) { f.body = body; break; }
+  }
 
-  if (/mazs? nobrauk|maz nobrauk|mazāko nobrauk/.test(t)) f.sort = 'mileage';
-  else if (/lētāk|lētu|lēts|lēti/.test(t) && !/deal|izdevīg|atlaid/.test(t)) f.sort = 'price';
-  else if (/jaunāk/.test(t) && !f.minYear) f.sort = 'year';
+  if (/mazs? nobrauk|maz nobrauk|mazāko nobrauk|low mileage/.test(t)) f.sort = 'mileage';
+  else if (/lētāk|lētu|lēts|lēti|cheap/.test(t) && !/deal|izdevīg|atlaid/.test(t)) f.sort = 'price';
+  else if (/jaunāk|newest/.test(t) && !f.minYear) f.sort = 'year';
   else f.sort = 'deal';
 
   return f;
@@ -99,24 +151,40 @@ function describeFilters(f) {
   if (f.model) parts.push(f.model);
   if (f.fuel) parts.push(f.fuel);
   if (f.body) parts.push(f.body);
-  if (f.minYear) parts.push(`no ${f.minYear}. gada`);
-  if (f.maxYear) parts.push(`līdz ${f.maxYear}. gadam`);
-  if (f.maxPrice) parts.push(`līdz ${eur(f.maxPrice)}`);
+  if (f.minYear && f.minYear === f.maxYear) parts.push(`${f.minYear}. gads`);
+  else {
+    if (f.minYear) parts.push(`no ${f.minYear}. gada`);
+    if (f.maxYear) parts.push(`līdz ${f.maxYear}. gadam`);
+  }
+  if (f.minPrice && f.maxPrice) parts.push(`${eur(f.minPrice)}–${eur(f.maxPrice)}`);
+  else if (f.minPrice) parts.push(`no ${eur(f.minPrice)}`);
+  else if (f.maxPrice) parts.push(`līdz ${eur(f.maxPrice)}`);
   if (f.maxMileage) parts.push(`līdz ${fmt.format(f.maxMileage)} km`);
   return parts.join(', ');
 }
 
-function searchAnswer(filters, prefix = 'Atradu') {
+function searchAnswer(filters, prefix = 'Atradu', note = '') {
   const { total, items } = searchListings({ ...filters, limit: 6 });
   const what = describeFilters(filters);
   if (!total) {
+    // Pamēģinām mīkstāk: bez virsbūves un nobraukuma, ar 20% lielāku budžetu
+    const soft = { ...filters };
+    delete soft.body; delete soft.maxMileage;
+    if (soft.maxPrice) soft.maxPrice = Math.round(soft.maxPrice * 1.2 / 500) * 500;
+    const alt = JSON.stringify(soft) !== JSON.stringify(filters) ? searchListings({ ...soft, limit: 6 }) : { total: 0, items: [] };
+    if (alt.total) {
+      return {
+        intent: 'search', filters: soft, items: alt.items,
+        answer: `Ar šiem nosacījumiem${what ? ` (${what})` : ''} neatradu neko. Ja nedaudz atvieglo (${describeFilters(soft) || 'bez virsbūves un nobraukuma'}), ir ${fmt.format(alt.total)} auto. Lūk, labākie no tiem.`,
+      };
+    }
     return {
       intent: 'search', filters, items: [],
       answer: `Neatradu nevienu auto${what ? ` (${what})` : ''}. Pamēģini palielināt budžetu vai noņemt kādu nosacījumu.`,
     };
   }
   const best = items[0];
-  const lines = [`${prefix} ${total} auto${what ? ` (${what})` : ''}.`];
+  const lines = [`${prefix} ${fmt.format(total)} auto${what ? ` (${what})` : ''}.${note ? ` ${note[0].toUpperCase()}${note.slice(1)}.` : ''}`];
   if (best.dealScore != null && best.dealScore > 0) {
     lines.push(
       `Izdevīgākais ir ${best.make} ${best.model}, ${best.year}, par ${eur(best.price)}. ` +
@@ -125,9 +193,31 @@ function searchAnswer(filters, prefix = 'Atradu') {
   } else {
     lines.push(`Pirmais sarakstā ir ${best.make} ${best.model}, ${best.year}, par ${eur(best.price)}.`);
   }
-  if (best.mileage > 300000) lines.push('Tam ir liels nobraukums, tāpēc pirms pirkšanas vērts pārbaudīt servisa vēsturi.');
-  return { intent: 'search', filters, items, answer: lines.join(' ') };
+  if (best.dealScore > 35) lines.push('Cena ir aizdomīgi zema, tāpēc to noteikti pārbaudi.');
+  else if (best.mileage > 300000) lines.push('Tam ir liels nobraukums, tāpēc pirms pirkšanas vērts pārbaudīt servisa vēsturi.');
+  return { intent: 'search', filters, items, answer: lines.join(' ').replace(/ \n/g, '\n') };
 }
+
+// ---------- "Cik maksā Golf 2015?" ----------
+
+function priceAnswer(filters) {
+  const { total, items } = searchListings({ ...filters, sort: 'price', limit: 500 });
+  const what = describeFilters(filters) || 'visiem auto';
+  if (total < 3) return { intent: 'price', filters, items: [], answer: `Par ${what} man ir par maz datu (${total} sludinājumi), lai pateiktu tipisku cenu.` };
+  const prices = items.map((l) => l.price).sort((a, b) => a - b);
+  const q = (p) => prices[Math.min(prices.length - 1, Math.floor(p * prices.length))];
+  const top = searchListings({ ...filters, sort: 'deal', limit: 3 }).items;
+  return {
+    intent: 'price', filters, items: top,
+    answer: `${what[0].toUpperCase()}${what.slice(1)}: ${fmt.format(total)} sludinājumi. Tipiskā cena ir ap ${eur(q(0.5))}, ` +
+      `lielākā daļa maksā no ${eur(q(0.25))} līdz ${eur(q(0.75))} (lētākais ${eur(prices[0])}).` +
+      (top.length ? ' Zemāk ir izdevīgākie no tiem.' : ''),
+  };
+}
+
+const HELP_TEXT = 'Sveiki! Es meklēju lietotus auto Dealvo datos un salīdzinu tos ar tirgu. Vari rakstīt, piemēram:\n' +
+  '• „dīzeļa universālis līdz 7000 € pēc 2013”\n• „golfs līdz 5000”\n• „cik maksā Octavia 2016?”\n' +
+  '• „auto ģimenei no 4000 līdz 8000 eur”\nPēc tam vari prasīt „un lētāku?”, „salīdzini pirmos divus” vai „vai pirmais ir labs pirkums?”.';
 
 // ---------- Jautājuma veida noteikšana ----------
 
@@ -284,7 +374,19 @@ function compare(a, b) {
 
 function offlineAnswer(question, ctx = {}) {
   const intent = intentOf(question, ctx);
-  const t = question.toLowerCase();
+  const t = question.toLowerCase().trim();
+
+  if (HELP_RE.test(t) && t.split(/\s+/).length <= 6) {
+    return { mode: 'offline', intent: 'help', filters: ctx.filters || null, items: [], answer: HELP_TEXT };
+  }
+  if (PRICE_Q_RE.test(t)) {
+    const f = parseQuestion(question);
+    // "cik maksā golfs 2015?" — gads bez "pēc/no" nozīmē tieši to gadu
+    const y = t.match(/\b(19[89]\d|20[0-3]\d)\b/);
+    if (y && !f.minYear && !f.maxYear) { f.minYear = Number(y[1]); f.maxYear = Number(y[1]); }
+    delete f.sort;
+    return { mode: 'offline', ...priceAnswer(f) };
+  }
 
   if (intent === 'compare') {
     const keys = ctx.focus ? [ctx.focus, ...(ctx.ids || []).filter((k) => k !== ctx.focus)] : ctx.ids;
@@ -303,7 +405,9 @@ function offlineAnswer(question, ctx = {}) {
     const filters = refineFilters(question, ctx.filters, shown);
     return { mode: 'offline', ...searchAnswer(filters, 'Labi, tagad atradu'), intent };
   }
-  return { mode: 'offline', ...searchAnswer(parseQuestion(question)) };
+  const filters = parseQuestion(question);
+  const purpose = !filters.model && PURPOSES.find(([re, body]) => re.test(t) && filters.body === body);
+  return { mode: 'offline', ...searchAnswer(filters, 'Atradu', purpose ? purpose[2] : '') };
 }
 
 // ---------------------------------------------------------------------------
@@ -317,7 +421,7 @@ Noteikumi:
 - Ja lietotājs turpina iepriekšējo sarunu ("un kaut ko lētāku?", "bet dīzeli?"), ņem vērā iepriekšējos filtrus (tie ir dotajā kontekstā) un izsauc search_cars ar izmainītiem filtriem.
 - Ja lietotājs prasa salīdzināt auto vai novērtēt konkrētu auto ("vai šis ir labs pirkums?"), izsauc get_cars ar to ID no konteksta un salīdzini cenu pret tirgu, nobraukumu gadā, vecumu un pārdevēju. Beigās pasaki skaidru ieteikumu.
 - Ja rezultātu nav, pamēģini vēlreiz ar mīkstākiem filtriem (piem. lielāks budžets), ne vairāk kā 2 reizes.
-- Atbildi latviski, īsi (2–5 teikumi), draudzīgi. Ieteic 1–3 konkrētus auto ar cenu, gadu un to, cik % tie ir lētāki par tirgu.
+- Atbildi tajā valodā, kurā lietotājs jautā (parasti latviski), īsi (2–5 teikumi), draudzīgi. Ja iesaki vairākus auto, uzskaiti tos numurētā sarakstā. Ieteic 1–3 konkrētus auto ar cenu, gadu un to, cik % tie ir lētāki par tirgu.
 - Ja auto ir ļoti liels nobraukums vai aizdomīgi zema cena (vairāk kā 35% zem tirgus), iesaki to pārbaudīt pirms pirkšanas.
 - Ja jautājums nav par auto meklēšanu, pieklājīgi pasaki, ka palīdzi tikai ar auto meklēšanu Dealvo datos.
 - Tu neesi finanšu konsultants; nesoli, ka darījums noteikti ir labs.`;

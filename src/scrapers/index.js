@@ -17,7 +17,9 @@ const SOURCES = {
  * @returns {Promise<{items: object[], report: object[]}>}
  */
 async function scrapeMake(make, sourceKeys, pages) {
-  const results = await Promise.allSettled(sourceKeys.map((k) => SOURCES[k].fetchMake(make, pages)));
+  // pages: skaitlis visiem avotiem vai objekts katram avotam, piem. { sslv: 5, autoscout24: 10 }
+  const pagesFor = (k) => (typeof pages === 'object' && pages ? pages[k] ?? 2 : pages);
+  const results = await Promise.allSettled(sourceKeys.map((k) => SOURCES[k].fetchMake(make, pagesFor(k))));
   const items = [];
   const report = results.map((r, i) => {
     const key = sourceKeys[i];

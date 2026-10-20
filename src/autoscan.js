@@ -64,13 +64,18 @@ function createAutoScan({ db, scrape, makes, sources, pages = 2, staleMinutes = 
   }
 
   function start(intervalMinutes) {
-    const tick = () => { if (!running) scanMake(nextMake()); };
-    setTimeout(tick, 5000);
-    timer = setInterval(tick, intervalMinutes * 60 * 1000);
+    // Kamēr kāda marka vēl nav skenēta (piem. tukša datubāze), skenējam pēc kārtas bez gaidīšanas,
+    // lai lapa ātri piepildās. Pēc tam — viena marka ik pēc intervalMinutes.
+    const unscanned = () => Object.keys(makes).some((k) => !lastScan.has(k));
+    const tick = async () => {
+      if (!running) await scanMake(nextMake());
+      timer = setTimeout(tick, unscanned() ? 5000 : intervalMinutes * 60 * 1000);
+    };
+    timer = setTimeout(tick, 5000);
     log(`[autoscan] ieslēgts: viena marka ik pēc ${intervalMinutes} min, avoti: ${sources.join(', ')}`);
   }
 
-  function stop() { clearInterval(timer); }
+  function stop() { clearTimeout(timer); }
 
   function status() {
     const times = [...lastScan.values()];

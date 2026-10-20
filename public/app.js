@@ -107,7 +107,7 @@ function mini(l) {
     <button type="button" ${openAttr(l)} class="group flex w-full items-center gap-3 rounded-lg border border-hair bg-paper p-2 pr-3 text-left hover:border-faint">
       ${photo(l, 'aspect-[4/3] w-24 flex-none rounded-md')}
       <span class="block min-w-0 flex-1">
-        <span class="block truncate text-sm font-medium group-hover:underline group-hover:underline-offset-4">${esc(l.make)} ${esc(l.model)}, ${esc(l.year)}</span>
+        <span class="block truncate text-sm font-medium group-hover:underline group-hover:underline-offset-4"><span translate="no">${esc(l.make)} ${esc(l.model)}</span>, ${esc(l.year)}</span>
         <span class="block text-sm font-semibold">${eur(l.price)}</span>
         <span class="mt-1 block">${dealBadge(l)}</span>
       </span>
@@ -119,7 +119,7 @@ function tile(l) {
     <button type="button" ${openAttr(l)} class="group block w-64 flex-none snap-start overflow-hidden rounded-xl border border-hair bg-paper text-left transition-shadow hover:shadow-md sm:w-auto">
       ${photo(l, 'aspect-[16/10]')}
       <span class="block p-4">
-        <span class="block truncate font-medium group-hover:underline group-hover:underline-offset-4">${esc(l.make)} ${esc(l.model)}</span>
+        <span class="block truncate font-medium group-hover:underline group-hover:underline-offset-4"><span translate="no">${esc(l.make)} ${esc(l.model)}</span></span>
         <span class="mt-0.5 block text-sm text-sub">${esc(l.year)}${l.mileage != null ? `, ${fmt.format(l.mileage)} km` : ''}</span>
         <span class="mt-3 flex items-end justify-between gap-2">
           <span class="text-lg font-semibold tracking-tight">${eur(l.price)}</span>
@@ -139,7 +139,7 @@ function listCard(l) {
         <div class="grid gap-4 p-4 sm:p-5 md:grid-cols-[1fr_190px]">
           <div class="min-w-0">
             <button type="button" ${openAttr(l)} class="block max-w-full truncate text-left text-lg font-semibold tracking-tight hover:underline hover:underline-offset-4">
-              ${esc(l.make)} ${esc(l.model)}
+              <span translate="no">${esc(l.make)} ${esc(l.model)}</span>
             </button>
             <p class="truncate text-sm text-sub">${esc(l.title)}</p>
             <div class="mt-3 flex flex-wrap gap-1.5 text-sm text-sub">${facts(l)}</div>
@@ -204,7 +204,7 @@ function renderCar(l) {
   return `
     <div class="flex items-start justify-between gap-4 border-b border-hair px-5 py-4 sm:px-6">
       <div class="min-w-0">
-        <h2 id="carTitle" class="truncate text-xl font-semibold tracking-tight sm:text-2xl">${esc(l.make)} ${esc(l.model)} <span class="font-normal text-sub">${esc(l.year)}</span></h2>
+        <h2 id="carTitle" class="truncate text-xl font-semibold tracking-tight sm:text-2xl"><span translate="no">${esc(l.make)} ${esc(l.model)}</span> <span class="font-normal text-sub">${esc(l.year)}</span></h2>
         <p class="truncate text-sm text-sub">${esc(l.title)}</p>
       </div>
       <button type="button" data-close-car class="flex-none rounded-md p-1.5 text-sub hover:bg-wash" aria-label="Aizvērt">
@@ -241,8 +241,14 @@ function renderCar(l) {
 
         ${d.description ? `
           <section>
-            <h3 class="font-semibold">Apraksts</h3>
-            <p class="mt-2 max-w-[70ch] whitespace-pre-line text-sm leading-relaxed text-sub">${esc(d.description)}</p>
+            <div class="flex items-center justify-between gap-3">
+              <h3 class="font-semibold">Apraksts</h3>
+              <button type="button" data-translate-desc class="inline-flex items-center gap-1.5 rounded-md border border-hair px-2.5 py-1 text-sm text-sub hover:border-navy hover:text-navy">
+                <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 5h9M8.5 3v2M6 5c.5 3 2.5 5.5 5.5 7M11 5c-.5 3-3 6.5-7 8M13 21l4.5-10L22 21M14.5 18h6"/></svg>
+                <span>Tulkot</span>
+              </button>
+            </div>
+            <p id="carDesc" translate="no" data-original="${esc(d.description)}" class="mt-2 max-w-[70ch] whitespace-pre-line text-sm leading-relaxed text-sub">${esc(d.description)}</p>
           </section>` : ''}
       </div>
 
@@ -390,12 +396,15 @@ async function loadTop() {
       </div>`;
 }
 
+let lastScanSeen = null;
 async function loadStats() {
   const s = await api('/api/stats');
-  const names = Object.keys(s.bySource).map(sourceLabel);
-  $('#sourceLine').textContent = s.total
-    ? `${fmt.format(s.total)} sludinājumi no ${names.join(', ')}. ${fmt.format(s.superDeals)} no tiem ir vismaz 20% lētāki par līdzīgiem auto.${s.lastScanAt ? ` Atjaunots ${ago(s.lastScanAt)}.` : ''}`
-    : 'Pirmie sludinājumi tiek ielādēti. Pārlādē lapu pēc minūtes.';
+  lastScanSeen = s.lastScanAt;
+  $('#statTotal').textContent = s.total ? fmt.format(s.total) : '0';
+  $('#statDeals').textContent = fmt.format(s.superDeals + s.goodDeals);
+  $('#statAgo').textContent = s.lastScanAt ? ago(s.lastScanAt) : '—';
+  $('#livePill').classList.toggle('md:flex', Boolean(s.total));
+  $('#liveText').textContent = `${Object.keys(s.bySource).map(sourceLabel).join(' · ')}`;
   // Vietņu filtrs sānjoslā — rādām tikai tās, kurām ir dati
   const current = new FormData($('#sideForm')).get('source') || '';
   $('#sourceRadios').innerHTML = [['', 'Visas', s.total], ...Object.entries(s.bySource).map(([k, n]) => [k, sourceLabel(k), n])]
@@ -410,6 +419,21 @@ async function refresh() {
   await Promise.all([loadStats(), loadListings(), loadTop()]);
 }
 
+// Dati atjaunojas paši: ik pēc 45 s pārbaudām, vai serveris ir noskenējis ko jaunu.
+// Sarakstu pārlādējam tikai tad, ja lietotājs neskatās sludinājumu un nav aizritinājis tālu.
+setInterval(async () => {
+  if (document.hidden) return;
+  try {
+    const st = await api('/api/scan-status');
+    if (st.lastScanAt && st.lastScanAt !== lastScanSeen) {
+      await Promise.all([loadStats(), loadTop()]);
+      if ($('#carModal').hidden && window.scrollY < 1200) loadListings();
+    } else if (lastScanSeen) {
+      $('#statAgo').textContent = ago(lastScanSeen);
+    }
+  } catch { /* nākamreiz */ }
+}, 45000);
+
 // ---------- AI asistents ----------
 
 // Saruna ar asistentu: pēdējās atbildes un to, kas tika parādīts, sūtām līdzi nākamajam jautājumam,
@@ -417,42 +441,76 @@ async function refresh() {
 const chat = { turns: [], filters: null, ids: [] };
 const keyOf = (l) => `${l.source}:${l.externalId}`;
 
+const EXAMPLES = ['Dīzeļa universālis līdz 7000 € pēc 2013', 'Golfs līdz 5000', 'Cik maksā Octavia 2016?', 'Auto ģimenei no 4000 līdz 8000 eur'];
+
+function openAi(question) {
+  $('#aiPanel').classList.remove('hidden');
+  $('#aiFab').classList.add('hidden');
+  document.body.style.overflow = 'hidden';
+  renderChat();
+  if (question) askAssistant(question);
+  else setTimeout(() => $('#aiPanelInput').focus(), 50);
+}
+function closeAi() {
+  $('#aiPanel').classList.add('hidden');
+  $('#aiFab').classList.remove('hidden');
+  document.body.style.overflow = '';
+}
+
+// Atbildes teksts: rindas un numurēts saraksts ("1. ...") kā smuks saraksts
+function answerHtml(text) {
+  const lines = esc(text).split('\n');
+  let html = '';
+  let list = [];
+  const flush = () => { if (list.length) { html += `<ol class="mt-2 space-y-1">${list.join('')}</ol>`; list = []; } };
+  for (const line of lines) {
+    const m = line.match(/^(\d+)\.\s+(.*)$/);
+    const bullet = line.match(/^[•\-]\s+(.*)$/);
+    if (m) list.push(`<li class="flex gap-2"><span class="w-4 flex-none text-faint">${m[1]}.</span><span>${m[2]}</span></li>`);
+    else if (bullet) list.push(`<li class="flex gap-2"><span class="w-4 flex-none text-faint">•</span><span>${bullet[1]}</span></li>`);
+    else { flush(); if (line.trim()) html += `<p class="${html ? 'mt-2' : ''}">${line}</p>`; }
+  }
+  flush();
+  return html;
+}
+
 function renderChat(pending) {
   const box = $('#aiResult');
-  if (!chat.turns.length && !pending) { box.className = 'hidden'; box.innerHTML = ''; return; }
-  box.className = 'mt-5 space-y-5 border-t border-hair pt-5';
-  const turnHtml = (t) => `
-    <div class="space-y-3">
-      <p class="ml-auto w-fit max-w-[75ch] rounded-2xl rounded-br-md bg-navy px-4 py-2 text-paper">${esc(t.q)}</p>
-      <div class="flex items-start gap-3">
-        <span class="mt-0.5 grid size-7 flex-none place-items-center rounded-full bg-navy text-xs font-semibold text-paper">AI</span>
-        <div class="min-w-0 flex-1">
-          <p class="max-w-[75ch] leading-relaxed ${t.error ? 'text-above' : ''}">${esc(t.a).replace(/\n/g, '<br>')}</p>
-          ${t.items?.length ? `<div class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">${t.items.slice(0, 3).map(mini).join('')}</div>` : ''}
-        </div>
-      </div>
+  const bubbleAi = (inner) => `
+    <div class="flex items-start gap-3">
+      <span translate="no" class="mt-0.5 grid size-7 flex-none place-items-center rounded-full bg-navy text-[10px] font-bold text-paper">AI</span>
+      <div class="min-w-0 flex-1 rounded-2xl rounded-tl-md bg-paper px-4 py-3 text-[15px] leading-relaxed ring-1 ring-hair">${inner}</div>
     </div>`;
+  const turnHtml = (t, i) => `
+    <div class="space-y-3">
+      <p class="ml-auto w-fit max-w-[85%] rounded-2xl rounded-br-md bg-navy px-4 py-2 text-[15px] text-paper">${esc(t.q)}</p>
+      ${bubbleAi(`<div class="${t.error ? 'text-above' : ''}">${answerHtml(t.a)}</div>
+        ${t.items?.length ? `<div class="mt-3 space-y-2">${t.items.slice(0, 3).map(mini).join('')}</div>` : ''}
+        ${t.filters && t.items?.length && i === chat.turns.length - 1 ? `<button type="button" data-show-list class="mt-3 text-sm font-medium text-navy underline underline-offset-4">Rādīt visus sarakstā →</button>` : ''}`)}
+    </div>`;
+  const welcome = bubbleAi(`<p>Sveiki! Pastāsti, kādu auto meklē: budžetu, gadu, degvielu vai kam tas vajadzīgs. Es atradīšu izdevīgākos un salīdzināšu tos ar tirgu.</p>`);
+  box.innerHTML = (chat.turns.length ? chat.turns.map(turnHtml).join('') : pending ? '' : welcome) +
+    (pending ? `<p class="ml-auto w-fit max-w-[85%] rounded-2xl rounded-br-md bg-navy px-4 py-2 text-[15px] text-paper">${esc(pending)}</p><div class="flex items-center gap-3 pl-10 text-sm text-sub"><span class="flex gap-1"><span class="size-1.5 animate-bounce rounded-full bg-navy"></span><span class="size-1.5 animate-bounce rounded-full bg-navy [animation-delay:120ms]"></span><span class="size-1.5 animate-bounce rounded-full bg-navy [animation-delay:240ms]"></span></span>Meklēju…</div>` : '');
+  box.scrollTop = box.scrollHeight;
+
   const last = chat.turns.at(-1);
-  const chips = [];
-  if (last && !last.error && !pending) {
-    if (chat.filters) chips.push('Un kaut ko lētāku?', 'Un jaunāku?');
+  let chips = [];
+  if (!chat.turns.length) chips = EXAMPLES;
+  else if (last && !last.error && !pending) {
+    if (chat.filters) chips.push('Un kaut ko lētāku?', 'Un jaunāku?', 'Ar mazāku nobraukumu');
     if (chat.ids.length >= 2) chips.push('Salīdzini pirmos divus');
     if (chat.ids.length >= 1) chips.push('Vai pirmais ir labs pirkums?');
   }
-  box.innerHTML = chat.turns.map(turnHtml).join('') +
-    (pending ? `<div class="flex items-center gap-3 text-sub"><span class="size-2 animate-pulse rounded-full bg-navy"></span>Domā par „${esc(pending)}”…</div>` : '') +
-    `<div class="flex flex-wrap items-center gap-2 text-sm">
-      ${chips.map((c) => `<button type="button" data-ask="${esc(c)}" class="rounded-full border border-hair px-3 py-1 text-sub hover:border-navy hover:text-navy">${esc(c)}</button>`).join('')}
-      ${chat.turns.length && !pending ? `<button type="button" id="aiReset" class="ml-auto text-faint underline underline-offset-4 hover:text-ink">Jauna saruna</button>` : ''}
-      ${last && !pending ? `<span class="w-full text-xs text-faint">${last.mode === 'claude' ? 'Atbildi sagatavoja Claude, izmantojot tikai Dealvo datus.' : 'Bezsaistes režīms: atbilde aprēķināta no Dealvo datiem.'}</span>` : ''}
-    </div>`;
+  $('#aiChips').innerHTML = pending ? '' : chips.map((c) =>
+    `<button type="button" data-ask="${esc(c)}" class="rounded-full border border-hair bg-paper px-3 py-1 text-sub hover:border-navy hover:text-navy">${esc(c)}</button>`).join('');
+  if (last && !pending) $('#aiMode').textContent = last.mode === 'claude' ? 'Claude · meklē tikai Dealvo datos' : 'Meklē tikai Dealvo datos';
 }
 
+let asking = false;
 async function askAssistant(question, focus) {
-  const btn = $('#aiBtn');
-  btn.disabled = true;
-  btn.textContent = 'Domā…';
-  renderChat(question);
+  if (asking) return;
+  asking = true;
+  renderChat(question); // jautājums parādās uzreiz, atbilde — kad gatava
   try {
     const r = await api('/api/assistant', {
       method: 'POST',
@@ -462,34 +520,42 @@ async function askAssistant(question, focus) {
         history: chat.turns.slice(-4).map((t) => ({ q: t.q, a: t.a })),
       }),
     });
-    chat.turns.push({ q: question, a: r.answer, items: r.items, mode: r.mode });
+    chat.turns.push({ q: question, a: r.answer, items: r.items, mode: r.mode, filters: r.filters });
     if (r.items?.length) chat.ids = r.items.map(keyOf);
     if (r.filters) { chat.filters = r.filters; applyFilters(r.filters); }
   } catch (err) {
     chat.turns.push({ q: question, a: err.message, error: true });
   } finally {
-    chat.turns = chat.turns.slice(-6);
+    chat.turns = chat.turns.slice(-8);
+    asking = false;
     renderChat();
-    btn.disabled = false;
-    btn.textContent = 'Jautāt';
-    $('#aiInput').value = '';
   }
 }
 
 document.addEventListener('click', (e) => {
+  if (e.target.closest('[data-open-ai]')) { openAi(); return; }
+  if (e.target.closest('[data-close-ai]')) { closeAi(); return; }
+  if (e.target.closest('[data-show-list]')) {
+    closeAi();
+    $('#results').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    return;
+  }
   const chip = e.target.closest('[data-ask]');
   if (chip) { askAssistant(chip.dataset.ask); return; }
-  if (e.target.id === 'aiReset') {
+  if (e.target.closest('#aiReset')) {
     chat.turns = []; chat.filters = null; chat.ids = [];
     renderChat();
-    $('#aiInput').focus();
+    $('#aiPanelInput').focus();
   }
   const about = e.target.closest('[data-ask-about]');
   if (about) {
     closeCar();
-    $('#ai').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' });
+    openAi();
     askAssistant('Vai šis ir labs pirkums?', about.dataset.askAbout);
   }
+});
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape' && !$('#aiPanel').classList.contains('hidden') && $('#carModal').hidden) closeAi();
 });
 
 // Izvēlnē ieliek vērtību; ja tādas opcijas nav (piem. AI deva 8200 €), pievieno to
@@ -517,12 +583,16 @@ async function applyFilters(f) {
 $('#aiForm').addEventListener('submit', (e) => {
   e.preventDefault();
   const q = $('#aiInput').value.trim();
-  if (q) askAssistant(q);
+  $('#aiInput').value = '';
+  openAi(q || undefined);
 });
-$$('#aiExamples button').forEach((b) => b.addEventListener('click', () => {
-  $('#aiInput').value = b.textContent;
-  askAssistant(b.textContent);
-}));
+$('#aiPanelForm').addEventListener('submit', (e) => {
+  e.preventDefault();
+  const q = $('#aiPanelInput').value.trim();
+  if (!q) return;
+  $('#aiPanelInput').value = '';
+  askAssistant(q);
+});
 
 // ---------- Filtri ----------
 
@@ -670,6 +740,128 @@ $('#clearBtn').addEventListener('click', async () => {
   } catch (err) { setStatus(err.message, 'err'); }
 });
 
+// ---------- Tulkošana ----------
+// Valodas izvēle galvenē iztulko visu lapas tekstu (arī to, kas ielādējas vēlāk).
+// Oriģinālais latviešu teksts tiek saglabāts, tāpēc var pārslēgties atpakaļ uz LV.
+const i18n = { lang: 'lv', nodes: new WeakMap(), cache: {}, timer: null };
+const HAS_WORDS = /\p{L}{2,}/u;
+
+function langCache(lang) {
+  if (!i18n.cache[lang]) {
+    try { i18n.cache[lang] = JSON.parse(localStorage.getItem(`dealvo-tr-${lang}`) || '{}'); } catch { i18n.cache[lang] = {}; }
+  }
+  return i18n.cache[lang];
+}
+function saveCache(lang) {
+  try {
+    const c = langCache(lang);
+    const keys = Object.keys(c);
+    if (keys.length > 3000) for (const k of keys.slice(0, keys.length - 3000)) delete c[k];
+    localStorage.setItem(`dealvo-tr-${lang}`, JSON.stringify(c));
+  } catch { /* privātais režīms */ }
+}
+
+async function translateList(texts, to) {
+  const c = langCache(to);
+  const todo = [...new Set(texts.filter((t) => c[t] === undefined))];
+  for (let i = 0; i < todo.length;) {
+    const chunk = [];
+    let len = 0;
+    while (i < todo.length && chunk.length < 60 && len + todo[i].length < 9000) { len += todo[i].length; chunk.push(todo[i++]); }
+    if (!chunk.length) { i++; continue; }
+    const r = await api('/api/translate', { method: 'POST', body: JSON.stringify({ texts: chunk, to }) });
+    chunk.forEach((t, j) => { c[t] = r.texts[j]; });
+  }
+  if (todo.length) saveCache(to);
+  return texts.map((t) => c[t] ?? t);
+}
+
+// Teksta mezgli un placeholder atribūti, kurus tulkot
+function translatable() {
+  const out = [];
+  const walker = document.createTreeWalker(document.body, NodeFilter.SHOW_TEXT, {
+    acceptNode: (n) => (n.parentElement?.closest('script,style,[translate="no"]') || !HAS_WORDS.test(n.nodeValue)
+      ? NodeFilter.FILTER_REJECT : NodeFilter.FILTER_ACCEPT),
+  });
+  while (walker.nextNode()) out.push({ node: walker.currentNode, attr: null });
+  for (const el of $$('[placeholder], [title], [aria-label]')) {
+    if (el.closest('[translate="no"]')) continue;
+    for (const attr of ['placeholder', 'title', 'aria-label']) if (el.hasAttribute(attr) && HAS_WORDS.test(el.getAttribute(attr))) out.push({ node: el, attr });
+  }
+  return out;
+}
+const getVal = (x) => (x.attr ? x.node.getAttribute(x.attr) : x.node.nodeValue);
+const setVal = (x, v) => (x.attr ? x.node.setAttribute(x.attr, v) : (x.node.nodeValue = v));
+const keyFor = (x) => (x.attr ? `${x.attr}` : 'text');
+
+async function translatePage() {
+  const lang = i18n.lang;
+  const items = translatable().map((x) => {
+    const rec = i18n.nodes.get(x.node)?.[keyFor(x)];
+    const now = getVal(x);
+    // Ja teksts nav mainījies kopš mūsu tulkojuma — ņem oriģinālu; citādi lapa to ir atjaunojusi
+    const orig = rec && (now === rec.applied || now === rec.orig) ? rec.orig : now;
+    return { ...x, orig };
+  });
+  if (lang === 'lv') {
+    for (const x of items) if (getVal(x) !== x.orig) setVal(x, x.orig);
+    return;
+  }
+  const core = items.map((x) => x.orig.trim());
+  let translated;
+  try { translated = await translateList(core, lang); } catch { return; }
+  if (lang !== i18n.lang) return; // valoda pa to laiku nomainīta
+  items.forEach((x, i) => {
+    const lead = x.orig.match(/^\s*/)[0];
+    const trail = x.orig.match(/\s*$/)[0];
+    const applied = lead + translated[i] + trail;
+    const recs = i18n.nodes.get(x.node) || {};
+    recs[keyFor(x)] = { orig: x.orig, applied };
+    i18n.nodes.set(x.node, recs);
+    if (getVal(x) !== applied) setVal(x, applied);
+  });
+}
+
+const observer = new MutationObserver(() => {
+  if (i18n.lang === 'lv') return;
+  clearTimeout(i18n.timer);
+  i18n.timer = setTimeout(translatePage, 250);
+});
+
+function setLang(lang) {
+  i18n.lang = lang;
+  document.documentElement.lang = lang === 'et' ? 'et' : lang;
+  try { localStorage.setItem('dealvo-lang', lang); } catch { /* */ }
+  $('#langSelect').value = lang;
+  if (lang === 'lv') observer.disconnect();
+  else observer.observe(document.body, { childList: true, subtree: true, characterData: true });
+  translatePage();
+}
+$('#langSelect').addEventListener('change', (e) => setLang(e.target.value));
+
+// Sludinājuma apraksta tulkošana (piem. vāciski → latviski)
+document.addEventListener('click', async (e) => {
+  const btn = e.target.closest('[data-translate-desc]');
+  if (!btn) return;
+  const p = $('#carDesc');
+  const label = $('span', btn);
+  if (p.dataset.translated) {
+    p.textContent = p.dataset.original;
+    delete p.dataset.translated;
+    label.textContent = 'Tulkot';
+    return;
+  }
+  label.textContent = 'Tulko…';
+  try {
+    const [t] = await translateList([p.dataset.original], i18n.lang);
+    p.textContent = t;
+    p.dataset.translated = '1';
+    label.textContent = 'Rādīt oriģinālu';
+  } catch (err) {
+    label.textContent = 'Neizdevās';
+  }
+});
+
 // ---------- Starts ----------
 (async () => {
   try {
@@ -685,6 +877,9 @@ $('#clearBtn').addEventListener('click', async () => {
       <label class="flex items-center gap-2"><input type="checkbox" name="sources" value="${esc(s.key)}" checked class="accent-navy">
         ${esc(s.label)} <span class="text-faint">${esc(s.country)}</span></label>`).join('');
     await refresh();
+    let saved = 'lv';
+    try { saved = localStorage.getItem('dealvo-lang') || 'lv'; } catch { /* */ }
+    if (saved !== 'lv' && [...$('#langSelect').options].some((o) => o.value === saved)) setLang(saved);
   } catch (e) {
     $('#count').textContent = 'Neizdevās ielādēt datus';
     $('#list').innerHTML = `<li class="text-above">${esc(e.message)}</li>`;

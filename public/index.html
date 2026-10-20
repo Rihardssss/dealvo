@@ -13,38 +13,58 @@
 
   <!-- Galvene -->
   <header class="bg-navy text-paper">
-    <div class="mx-auto flex h-14 max-w-7xl items-center justify-between gap-6 px-4 sm:px-6">
+    <div class="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
       <div class="flex items-center gap-8">
-        <a href="/" class="flex items-center gap-2.5" aria-label="Dealvo, lietoti auto zem tirgus cenas">
+        <a href="/" class="flex items-center gap-2.5" aria-label="Dealvo" translate="no">
           <span class="grid size-9 place-items-center rounded-lg bg-paper text-navy" aria-hidden="true">
             <svg viewBox="3 8 26 16" class="w-7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round">
               <path d="M5 20h22M8 20v-3.5l3-.8 3.2-4.2h6.6l4 4.2 2.7.8V20"/><circle cx="11.5" cy="20.5" r="2.3" fill="currentColor"/><circle cx="21.5" cy="20.5" r="2.3" fill="currentColor"/>
             </svg>
           </span>
-          <span class="leading-none">
-            <span class="block text-lg font-semibold tracking-tight">Dealvo</span>
-            <span class="mt-0.5 block text-[11px] text-paper/70">Lietoti auto zem tirgus cenas</span>
-          </span>
+          <span class="text-lg font-semibold tracking-tight">Dealvo</span>
         </a>
-        <nav class="hidden gap-6 text-sm text-paper/80 md:flex">
-          <a href="#results" class="hover:text-paper">Visi auto</a>
-          <a href="#ai" class="hover:text-paper">AI asistents</a>
-          <a href="#top" class="hover:text-paper">Izdevīgākie</a>
+        <nav class="hidden items-center gap-1 text-sm text-paper/75 md:flex">
+          <a href="#results" class="rounded-md px-3 py-1.5 hover:bg-paper/10 hover:text-paper">Visi auto</a>
+          <a href="#top" class="rounded-md px-3 py-1.5 hover:bg-paper/10 hover:text-paper">Izdevīgākie</a>
+          <button type="button" data-open-ai class="rounded-md px-3 py-1.5 hover:bg-paper/10 hover:text-paper">AI asistents</button>
         </nav>
       </div>
-      <button id="openDrawer" class="rounded-md border border-paper/25 px-3 py-1.5 text-sm font-medium hover:bg-paper/10">Atjaunot datus</button>
+      <div class="flex items-center gap-2">
+        <span id="livePill" class="hidden items-center gap-2 whitespace-nowrap rounded-full bg-paper/10 px-3 py-1 text-xs text-paper/85">
+          <span class="relative flex size-2"><span class="absolute inline-flex size-full animate-ping rounded-full bg-[#7fd8b0] opacity-60"></span><span class="relative inline-flex size-2 rounded-full bg-[#7fd8b0]"></span></span>
+          <span id="liveText" translate="no">Tiešsaistē</span>
+        </span>
+        <label class="relative" translate="no">
+          <span class="sr-only">Valoda</span>
+          <select id="langSelect" class="h-8 cursor-pointer appearance-none rounded-md border border-paper/25 bg-transparent pl-2.5 pr-7 text-sm font-medium text-paper hover:bg-paper/10 [&>option]:text-ink">
+            <option value="lv">LV</option><option value="en">EN</option><option value="ru">RU</option><option value="de">DE</option><option value="lt">LT</option><option value="et">EE</option>
+          </select>
+          <svg viewBox="0 0 12 12" class="pointer-events-none absolute right-2 top-1/2 size-3 -translate-y-1/2 text-paper/70" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M3 4.5l3 3 3-3"/></svg>
+        </label>
+        <button id="openDrawer" class="grid size-8 place-items-center rounded-md border border-paper/25 hover:bg-paper/10" title="Atjaunot datus" aria-label="Atjaunot datus">
+          <svg viewBox="0 0 24 24" class="size-4" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round"><path d="M20 11a8 8 0 0 0-14.9-3M4 4v4h4M4 13a8 8 0 0 0 14.9 3M20 20v-4h-4"/></svg>
+        </button>
+      </div>
     </div>
   </header>
 
-  <!-- Meklēšana -->
-  <section class="bg-navy pb-10 pt-6 text-paper md:pb-14 md:pt-10">
-    <div class="mx-auto max-w-7xl px-4 sm:px-6">
-      <h1 class="text-[clamp(1.75rem,3.6vw,2.6rem)] font-semibold leading-tight tracking-[-0.03em]">
-        Lietoti auto no trim vietnēm. Katrs salīdzināts ar tirgu.
-      </h1>
-      <p id="sourceLine" class="mt-2 text-paper/70"></p>
+  <!-- Augšējā josla + meklēšana -->
+  <section class="bg-navy pb-24 pt-4 text-paper sm:pt-8">
+    <div class="mx-auto flex max-w-7xl flex-col gap-5 px-4 sm:px-6 md:flex-row md:items-end md:justify-between">
+      <div>
+        <h1 class="text-[1.65rem] font-semibold leading-tight tracking-[-0.025em] sm:text-[2rem]">Atrodi auto zem tirgus cenas</h1>
+        <p class="mt-1.5 max-w-xl text-[15px] text-paper/65">Sludinājumi no ss.lv, AutoScout24 un mobile.de vienuviet. Katru auto salīdzinām ar līdzīgiem.</p>
+      </div>
+      <dl id="heroStats" class="grid grid-cols-3 gap-px overflow-hidden rounded-lg bg-paper/10 text-sm md:min-w-[26rem]">
+        <div class="bg-navy px-4 py-2.5"><dt class="text-xs text-paper/55">Sludinājumi</dt><dd id="statTotal" class="mt-0.5 text-lg font-semibold tabular-nums">–</dd></div>
+        <div class="bg-navy px-4 py-2.5"><dt class="text-xs text-paper/55">Zem tirgus</dt><dd id="statDeals" class="mt-0.5 text-lg font-semibold tabular-nums text-[#7fd8b0]">–</dd></div>
+        <div class="bg-navy px-4 py-2.5"><dt class="text-xs text-paper/55">Atjaunots</dt><dd id="statAgo" class="mt-0.5 text-lg font-semibold">–</dd></div>
+      </dl>
+    </div>
+  </section>
 
-      <div class="mt-7 rounded-xl bg-paper p-4 text-ink shadow-[0_20px_50px_-20px_rgb(0_0_0/0.5)] sm:p-6">
+  <div class="mx-auto -mt-16 max-w-7xl px-4 sm:px-6">
+    <div class="rounded-xl bg-paper p-4 text-ink shadow-[0_24px_60px_-28px_rgb(19_41_75/0.55)] ring-1 ring-hair sm:p-6">
         <form id="searchForm" class="space-y-5" autocomplete="off">
           <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <label><span class="field-label">Marka</span>
@@ -87,24 +107,20 @@
           </div>
         </form>
 
-        <!-- AI asistents -->
-        <form id="aiForm" class="mt-5 border-t border-hair pt-5" aria-labelledby="ai">
-          <label id="ai" for="aiInput" class="field-label scroll-mt-24">Vai vienkārši pastāsti AI asistentam, ko meklē</label>
-          <div class="flex gap-2">
-            <input id="aiInput" class="field" maxlength="400"
-              placeholder="Piemēram: ģimenes dīzelis līdz 7000 €, ne vecāks par 2013, ar mazu nobraukumu">
-            <button id="aiBtn" class="btn-line flex-none">Jautāt</button>
-          </div>
-          <div class="mt-2 flex flex-wrap gap-2 text-sm" id="aiExamples">
-            <button type="button" class="rounded-full bg-wash px-3 py-1 text-sub hover:text-ink">Lēts VW līdz 5000 €</button>
-            <button type="button" class="rounded-full bg-wash px-3 py-1 text-sub hover:text-ink">Hibrīds pēc 2016</button>
-            <button type="button" class="rounded-full bg-wash px-3 py-1 text-sub hover:text-ink">BMW ar mazu nobraukumu līdz 15000 €</button>
-          </div>
-        </form>
-        <div id="aiResult" class="hidden"></div>
-      </div>
+
+      <!-- AI asistents: īss ievades lauks; atbildes atveras sānu panelī -->
+      <form id="aiForm" class="mt-5 flex flex-col gap-3 rounded-lg bg-wash p-3 sm:flex-row sm:items-center sm:p-2 sm:pl-4">
+        <label for="aiInput" class="flex flex-none items-center gap-2 text-sm font-medium text-navy">
+          <span translate="no" class="grid size-6 place-items-center rounded-md bg-navy text-[10px] font-bold text-paper">AI</span>
+          Pastāsti, ko meklē
+        </label>
+        <div class="flex flex-1 gap-2">
+          <input id="aiInput" class="field border-transparent bg-paper" maxlength="400" placeholder="ģimenes dīzelis līdz 7000 €, ne vecāks par 2013">
+          <button id="aiBtn" class="btn-dark flex-none px-5">Jautāt</button>
+        </div>
+      </form>
     </div>
-  </section>
+  </div>
 
   <main class="mx-auto max-w-7xl px-4 sm:px-6">
     <!-- Izdevīgākie -->
@@ -195,6 +211,40 @@
         </div>
 
         <p id="status" class="min-h-5 text-sm" role="status" aria-live="polite"></p>
+      </div>
+    </aside>
+  </div>
+
+  <!-- AI asistenta panelis -->
+  <button type="button" id="aiFab" data-open-ai class="fixed bottom-5 right-5 z-30 flex items-center gap-2 rounded-full bg-navy py-3 pl-3 pr-5 text-sm font-medium text-paper shadow-[0_12px_30px_-10px_rgb(19_41_75/0.7)] hover:bg-navy-2">
+    <span translate="no" class="grid size-7 place-items-center rounded-full bg-paper text-[10px] font-bold text-navy">AI</span>
+    Jautāt AI
+  </button>
+  <div id="aiPanel" class="fixed inset-0 z-50 hidden" role="dialog" aria-modal="true" aria-labelledby="aiTitle">
+    <div class="absolute inset-0 bg-ink/30" data-close-ai></div>
+    <aside class="animate-drawer absolute right-0 top-0 flex h-full w-full max-w-lg flex-col bg-page">
+      <div class="flex h-16 flex-none items-center justify-between gap-3 border-b border-hair bg-paper px-5">
+        <div class="flex items-center gap-3">
+          <span translate="no" class="grid size-9 place-items-center rounded-full bg-navy text-xs font-bold text-paper">AI</span>
+          <div class="leading-tight">
+            <h2 id="aiTitle" class="font-semibold">AI asistents</h2>
+            <p id="aiMode" class="text-xs text-sub">Meklē tikai Dealvo datos</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-1">
+          <button type="button" id="aiReset" class="rounded-md px-2.5 py-1.5 text-sm text-sub hover:bg-wash hover:text-ink">Jauna saruna</button>
+          <button type="button" class="rounded-md p-1.5 text-sub hover:bg-wash" data-close-ai aria-label="Aizvērt">
+            <svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="1.75"><path d="M6 6l12 12M18 6L6 18"/></svg>
+          </button>
+        </div>
+      </div>
+      <div id="aiResult" class="flex-1 space-y-5 overflow-y-auto px-5 py-6" aria-live="polite"></div>
+      <div class="flex-none border-t border-hair bg-paper p-4">
+        <div id="aiChips" class="mb-3 flex flex-wrap gap-2 text-sm"></div>
+        <form id="aiPanelForm" class="flex gap-2">
+          <input id="aiPanelInput" class="field" maxlength="400" placeholder="Raksti jautājumu…" autocomplete="off">
+          <button class="btn-dark flex-none px-5">Sūtīt</button>
+        </form>
       </div>
     </aside>
   </div>

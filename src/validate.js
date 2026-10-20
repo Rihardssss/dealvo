@@ -25,7 +25,7 @@ function validateScrapeRequest(body) {
   if (!make) errors.push('make: obligāts lauks');
   else if (!MAKES[make]) errors.push('make: nezināma marka');
 
-  const pages = toInt(body?.pages ?? 1, { min: 1, max: 5, field: 'pages' });
+  const pages = toInt(body?.pages ?? 1, { min: 1, max: 10, field: 'pages' });
   if (!pages.ok) errors.push(pages.error);
 
   let sources = body?.sources ?? ['sslv'];

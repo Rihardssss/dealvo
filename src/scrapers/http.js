@@ -1,5 +1,9 @@
 // Kopīga HTTP palīgfunkcija visiem skrāperiem.
 
+// Serveriem bieži ir IPv6 adrese, bet daļa vietņu (piem. ss.lv) caur IPv6 neatbild,
+// un tad fetch met "fetch failed". Tāpēc vispirms mēģinām IPv4.
+require('node:dns').setDefaultResultOrder('ipv4first');
+
 const USER_AGENT =
   'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/129.0 Safari/537.36';
 
@@ -13,8 +17,26 @@ class BlockedError extends Error {
 
 const BLOCK_MARKERS = /captcha|zugriff verweigert|access denied|are you a robot|cf-chl|px-captcha|unusual traffic/i;
 
-async function fetchHtml(url, source, extraHeaders = {}) {
-  const res = await fetch(url, {
+async function fetchHtml(url, source, extraHeaders = {}, attempt = 1) {
+  let res;
+  try {
+    res = await rawFetch(url, extraHeaders);
+  } catch (err) {
+    // Tīkla kļūda (nevis vietnes atbilde): vienreiz mēģinām vēlreiz
+    if (attempt < 2) { await sleep(1500); return fetchHtml(url, source, extraHeaders, attempt + 1); }
+    const why = err.cause?.code || err.cause?.message || err.name;
+    throw new Error(`${source}: neizdevās savienoties (${why})`);
+  }
+  if (res.status === 403 || res.status === 429) throw new BlockedError(source);
+  if (!res.ok) throw new Error(`${source} atbildēja ar ${res.status}`);
+  const html = await res.text();
+  // Bot aizsardzības lapas parasti ir īsas un satur šos vārdus
+  if (html.length < 20000 && BLOCK_MARKERS.test(html)) throw new BlockedError(source);
+  return html;
+}
+
+function rawFetch(url, extraHeaders) {
+  return fetch(url, {
     headers: {
       'User-Agent': USER_AGENT,
       Accept: 'text/html,application/xhtml+xml',
@@ -23,12 +45,6 @@ async function fetchHtml(url, source, extraHeaders = {}) {
     },
     signal: AbortSignal.timeout(20000),
   });
-  if (res.status === 403 || res.status === 429) throw new BlockedError(source);
-  if (!res.ok) throw new Error(`${source} atbildēja ar ${res.status}`);
-  const html = await res.text();
-  // Bot aizsardzības lapas parasti ir īsas un satur šos vārdus
-  if (html.length < 20000 && BLOCK_MARKERS.test(html)) throw new BlockedError(source);
-  return html;
 }
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));

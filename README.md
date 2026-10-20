@@ -6,12 +6,14 @@ Victoria projektu nedēļa, 2026.
 
 ## Ko tas dara
 
-- Nolasa sludinājumus no trim vietnēm, pats ik pēc 10 min (pa vienai markai)
+- Nolasa sludinājumus no trim vietnēm, pats ik pēc 3 min (pa vienai markai); tukšu datubāzi piepilda uzreiz
+- Lapa pati atjaunojas, kad parādās jauni dati
 - Ja kāds atver marku ar veciem datiem, to uzreiz atjauno
 - Salīdzina katru auto ar līdzīgiem un parāda, par cik % tas ir lētāks vai dārgāks
 - Filtri: marka, modelis, gads, cena, nobraukums, degviela, virsbūve
 - Auto lapa ar bildēm, datiem un pārdevēju
-- AI asistents: uzraksti, ko meklē, un tas atrod auto. Saprot arī turpinājumu („un kaut ko lētāku?”), salīdzina auto („salīdzini pirmos divus”) un novērtē konkrētu auto („vai šis ir labs pirkums?”)
+- AI asistents: uzraksti, ko meklē, un tas atrod auto. Saprot arī turpinājumu („un kaut ko lētāku?”), salīdzina auto („salīdzini pirmos divus”) un novērtē konkrētu auto („vai šis ir labs pirkums?”). Atpazīst modeļus („golfs līdz 5000”), cenu diapazonu un pasaka tipisko cenu („cik maksā Octavia 2016?”)
+- Tulkošana: lapu var pārslēgt uz EN, RU, DE, LT, EE; sludinājuma aprakstu var iztulkot ar vienu pogu
 
 ## Kā palaist
 

@@ -1,6 +1,6 @@
 # Pārbaudes scenāriji
 
-Automātiskie testi: `npm test` → 48/48 izdodas (3 vietņu parsētāji, SQLite datubāze, deal algoritms, API, AI asistents, automātiskā skenēšana, admin aizsardzība).
+Automātiskie testi: `npm test` → 53/53 izdodas (3 vietņu parsētāji, SQLite datubāze, deal algoritms, API, AI asistents, automātiskā skenēšana, admin aizsardzība, tulkošana, aprakstu tīrīšana).
 
 ## 1. Lietotājs atrod labāko dealu
 | | |
@@ -85,3 +85,17 @@ Automātiskie testi: `npm test` → 48/48 izdodas (3 vietņu parsētāji, SQLite
 | Soļi | „dīzeļa VW līdz 9000 eur” → „Un kaut ko lētāku?” → „Salīdzini pirmos divus” → auto lapā „Jautāt AI: vai šis ir labs pirkums?” |
 | Sagaidāmais | Otrais jautājums samazina cenu un saglabā VW un dīzeli; salīdzinājums nosauc atšķirības un ieteikumu; novērtējumā ir plusi, mīnusi un secinājums |
 | Rezultāts | ✅ Izdodas (automātiskie testi + pārbaudīts pārlūkā) |
+
+## 13. Tulkošana
+| | |
+|---|---|
+| Soļi | Galvenē izvēlas EN → atver vācu AutoScout24 sludinājumu → „Tulkot” pie apraksta |
+| Sagaidāmais | Lapas teksts angliski, auto nosaukumi un cenas nemainās; apraksts iztulkots, „Rādīt oriģinālu” atgriež vācu tekstu; LV atjauno latviešu tekstu |
+| Rezultāts | ✅ Izdodas (automātiskie testi + pārbaudīts pārlūkā) |
+
+## 14. Apraksts bez HTML
+| | |
+|---|---|
+| Soļi | Atver AutoScout24 sludinājumu, kura aprakstā ir `<br />` un `&amp;` |
+| Sagaidāmais | Apraksts ir parasts teksts ar rindkopām, bez tagiem |
+| Rezultāts | ✅ Izdodas (automātiskais tests) |
