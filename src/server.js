@@ -114,15 +114,14 @@ app.post('/api/assistant', async (req, res) => {
   const recent = (askHits.get(ip) || []).filter((t) => now - t < 60_000);
   if (recent.length >= 10) return res.status(429).json({ errors: ['Pārāk daudz jautājumu, pagaidi minūti'] });
   askHits.set(ip, [...recent, now]);
-  res.json(await assistant.ask(req.body.question));
+  res.json(await assistant.ask(req.body.question, req.body.context, req.body.history));
 });
 
 app.get('/api/scan-status', (req, res) => res.json({ enabled: AUTO_SCAN, ...autoscan.status() }));
 
 app.get('/api/stats', (req, res) => {
   const scored = scoreListings(db.all());
-  const bySource = {};
-  for (const l of scored) bySource[l.source] = (bySource[l.source] || 0) + 1;
+  const bySource = db.countBySource();
   res.json({
     total: scored.length,
     bySource,

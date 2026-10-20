@@ -15,33 +15,26 @@ const SORTERS = {
 };
 
 /**
+ * Meklē sludinājumus. Filtrēšanu dara SQL vaicājums (db.query), tad katram atrastajam
+ * auto aprēķina tirgus cenu no līdzīgiem auto tajā pašā marka+modelis grupā.
  * @param {object} f validēti filtri (skat. validateListingQuery)
  * @returns {{total: number, items: object[]}}
  */
 function searchListings(f = {}) {
-  let items = scoreListings(db.all());
-  if (f.make) {
-    const name = MAKES[f.make].toLowerCase();
-    items = items.filter((l) => normalizeMake(l.make).toLowerCase() === name);
-  }
-  if (f.model) {
-    // Salīdzinām normalizētus nosaukumus: "320d" = "320", "C220" = "C"
-    const want = f.model.toLowerCase();
-    items = items.filter((l) => normalizeModel(l.model, l.make).toLowerCase() === want
-      || (l.model || '').toLowerCase() === want);
-  }
-  if (f.body) items = items.filter((l) => l.body === f.body);
-  if (f.minPrice) items = items.filter((l) => l.price >= f.minPrice);
-  if (f.source) items = items.filter((l) => l.source === f.source);
-  if (f.fuel) items = items.filter((l) => l.fuel === f.fuel);
-  if (f.minYear) items = items.filter((l) => l.year >= f.minYear);
-  if (f.maxYear) items = items.filter((l) => l.year <= f.maxYear);
-  if (f.maxPrice) items = items.filter((l) => l.price <= f.maxPrice);
-  if (f.maxMileage) items = items.filter((l) => l.mileage != null && l.mileage <= f.maxMileage);
+  const rows = db.query({ ...f, makeName: f.make ? MAKES[f.make] : undefined });
+
+  // Tirgus cenai vajag arī tos līdzīgos auto, kurus filtrs izslēdza (piem. dārgākos)
+  const pairs = [...new Map(rows.map((l) => {
+    const make = normalizeMake(l.make);
+    const model = normalizeModel(l.model, l.make) || null;
+    return [`${make}|${model}`, [make, model]];
+  })).values()];
+  const scored = new Map(scoreListings(db.byModels(pairs)).map((l) => [`${l.source}:${l.externalId}`, l]));
+  const items = rows.map((l) => scored.get(`${l.source}:${l.externalId}`) || l);
 
   items.sort(SORTERS[f.sort || 'deal']);
   // Pilnās detaļas sarakstā nesūtām (tās ir /api/listing)
-  return { total: items.length, items: items.slice(0, f.limit || 60).map(({ details, detailsAt, ...l }) => l) };
+  return { total: items.length, items: items.slice(0, f.limit || 60).map(({ details, detailsAt, dbId, ...l }) => l) };
 }
 
 /**
@@ -49,16 +42,30 @@ function searchListings(f = {}) {
  */
 function modelsFor(makeSlug) {
   const name = MAKES[makeSlug];
-  const counts = new Map();
-  for (const l of db.all()) {
-    if (normalizeMake(l.make) !== name) continue;
-    const m = normalizeModel(l.model, l.make);
-    if (m) counts.set(m, (counts.get(m) || 0) + 1);
-  }
+  const counts = new Map(db.modelCounts(name).map((r) => [r.model, r.n]));
   for (const m of Object.keys(MODEL_CATALOG[name] || {})) if (!counts.has(m)) counts.set(m, 0);
   return [...counts.entries()]
     .map(([model, count]) => ({ model, count }))
     .sort((a, b) => b.count - a.count || a.model.localeCompare(b.model, 'lv', { numeric: true }));
 }
 
-module.exports = { searchListings, modelsFor };
+/**
+ * Konkrēti sludinājumi pēc atslēgām "avots:id", ar aprēķinātu tirgus cenu.
+ * Atgriež tajā pašā secībā; nezināmās atslēgas izlaiž.
+ */
+function getScored(keys) {
+  const rows = keys.map((k) => {
+    const i = k.indexOf(':');
+    return i > 0 ? db.find(k.slice(0, i), k.slice(i + 1)) : null;
+  }).filter(Boolean);
+  const pairs = [...new Map(rows.map((l) => {
+    const make = normalizeMake(l.make);
+    const model = normalizeModel(l.model, l.make) || null;
+    return [`${make}|${model}`, [make, model]];
+  })).values()];
+  const scored = new Map(scoreListings(db.byModels(pairs)).map((l) => [`${l.source}:${l.externalId}`, l]));
+  return rows.map((l) => scored.get(`${l.source}:${l.externalId}`) || l)
+    .map(({ details, detailsAt, dbId, ...l }) => l);
+}
+
+module.exports = { searchListings, modelsFor, getScored };

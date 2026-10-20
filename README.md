@@ -11,7 +11,7 @@ Victoria projektu nedēļa, 2026.
 - Salīdzina katru auto ar līdzīgiem un parāda, par cik % tas ir lētāks vai dārgāks
 - Filtri: marka, modelis, gads, cena, nobraukums, degviela, virsbūve
 - Auto lapa ar bildēm, datiem un pārdevēju
-- AI asistents: uzraksti, ko meklē, un tas atrod auto
+- AI asistents: uzraksti, ko meklē, un tas atrod auto. Saprot arī turpinājumu („un kaut ko lētāku?”), salīdzina auto („salīdzini pirmos divus”) un novērtē konkrētu auto („vai šis ir labs pirkums?”)
 
 ## Kā palaist
 
@@ -30,6 +30,7 @@ Atver http://localhost:3000
 ## Tehnoloģijas
 
 - Node.js un Express
+- SQLite datubāze (tabulas `listings` un `price_history`, struktūra failā `src/schema.sql`)
 - Cheerio (lapu nolasīšanai)
 - Tailwind CSS
 - Claude API (AI asistentam)
@@ -42,6 +43,7 @@ Katram auto atrod līdzīgus auto (tā pati marka un modelis, gads ±2, nobrauku
 ## Drošība
 
 - Ievade tiek pārbaudīta
+- Visi SQL vaicājumi ir parametrizēti (aizsardzība pret SQL injekcijām)
 - Aizsardzība pret XSS
 - Datus mainīt var tikai ar admin paroli
 - Tālruņi un privātpersonu vārdi netiek saglabāti
@@ -62,5 +64,6 @@ Katram auto atrod līdzīgus auto (tā pati marka un modelis, gads ±2, nobrauku
 | Rihards Indars | PX23 | Ideja, serveris, datu nolasīšana, cenu aprēķins, AI asistents |
 | Miks Henrijs Ozoliņš | PX24 | Testēšana ar īstām vietnēm (ss.lv, AutoScout24, mobile.de), kļūdu saraksts, TESTI.md |
 | Kristiāns Štībelis | PX24 | Publicēšana internetā (Cloudflare Tunnel, dealvo.riciboy.eu), DEPLOY.md |
+| Kārlis Gustavs Roštoks | PX23 | AI asistenta testēšana un uzlabošana, datubāzes shēma (ER diagramma) |
 | Rihards Berķis | PX24 | Dizaina un lietojamības pārbaude uz datora un telefona, prezentācija un demo scenārijs |
 

@@ -1,6 +1,6 @@
 # Pārbaudes scenāriji
 
-Automātiskie testi: `npm test` → 35/35 izdodas (3 vietņu parsētāji, deal algoritms, API, AI asistents, admin aizsardzība).
+Automātiskie testi: `npm test` → 48/48 izdodas (3 vietņu parsētāji, SQLite datubāze, deal algoritms, API, AI asistents, automātiskā skenēšana, admin aizsardzība).
 
 ## 1. Lietotājs atrod labāko dealu
 | | |
@@ -71,3 +71,17 @@ Automātiskie testi: `npm test` → 35/35 izdodas (3 vietņu parsētāji, deal a
 | Soļi | Sludinājums, kura aprakstā un kontaktos ir tālrunis un privātpersonas vārds |
 | Sagaidāmais | Tālrunis un vārds netiek saglabāti un netiek rādīti |
 | Rezultāts | ✅ Izdodas (automātiskie testi ar ss.lv un AutoScout24 paraugiem) |
+
+## 11. SQL injekcija
+| | |
+|---|---|
+| Soļi | Filtrā ievada `320'; DROP TABLE listings; --` |
+| Sagaidāmais | Nekas netiek atrasts, tabula paliek neskarta |
+| Rezultāts | ✅ Izdodas (automātiskais tests) |
+
+## 12. AI asistenta saruna
+| | |
+|---|---|
+| Soļi | „dīzeļa VW līdz 9000 eur” → „Un kaut ko lētāku?” → „Salīdzini pirmos divus” → auto lapā „Jautāt AI: vai šis ir labs pirkums?” |
+| Sagaidāmais | Otrais jautājums samazina cenu un saglabā VW un dīzeli; salīdzinājums nosauc atšķirības un ieteikumu; novērtējumā ir plusi, mīnusi un secinājums |
+| Rezultāts | ✅ Izdodas (automātiskie testi + pārbaudīts pārlūkā) |

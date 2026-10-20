@@ -253,6 +253,7 @@ function renderCar(l) {
           ${l.marketPrice ? `<p class="mt-3 text-sm text-sub">Līdzīgi auto (${l.comparables}) parasti maksā ap <span class="font-medium text-ink">${eur(l.marketPrice)}</span>.</p>` : ''}
           <div class="mt-4">${gauge(l)}</div>
           ${url ? `<a href="${esc(url)}" target="_blank" rel="noopener noreferrer" class="btn-dark mt-5 w-full">Atvērt sludinājumu ${esc(sourceLabel(l.source))}</a>` : ''}
+          <button type="button" data-ask-about="${esc(l.source)}:${esc(l.externalId)}" class="btn-line mt-2 w-full">Jautāt AI: vai šis ir labs pirkums?</button>
         </div>
 
         <div class="rounded-xl border border-hair p-5">
@@ -411,34 +412,85 @@ async function refresh() {
 
 // ---------- AI asistents ----------
 
-async function askAssistant(question) {
+// Saruna ar asistentu: pēdējās atbildes un to, kas tika parādīts, sūtām līdzi nākamajam jautājumam,
+// lai asistents saprastu "un kaut ko lētāku?" vai "salīdzini pirmos divus"
+const chat = { turns: [], filters: null, ids: [] };
+const keyOf = (l) => `${l.source}:${l.externalId}`;
+
+function renderChat(pending) {
   const box = $('#aiResult');
+  if (!chat.turns.length && !pending) { box.className = 'hidden'; box.innerHTML = ''; return; }
+  box.className = 'mt-5 space-y-5 border-t border-hair pt-5';
+  const turnHtml = (t) => `
+    <div class="space-y-3">
+      <p class="ml-auto w-fit max-w-[75ch] rounded-2xl rounded-br-md bg-navy px-4 py-2 text-paper">${esc(t.q)}</p>
+      <div class="flex items-start gap-3">
+        <span class="mt-0.5 grid size-7 flex-none place-items-center rounded-full bg-navy text-xs font-semibold text-paper">AI</span>
+        <div class="min-w-0 flex-1">
+          <p class="max-w-[75ch] leading-relaxed ${t.error ? 'text-above' : ''}">${esc(t.a).replace(/\n/g, '<br>')}</p>
+          ${t.items?.length ? `<div class="mt-3 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">${t.items.slice(0, 3).map(mini).join('')}</div>` : ''}
+        </div>
+      </div>
+    </div>`;
+  const last = chat.turns.at(-1);
+  const chips = [];
+  if (last && !last.error && !pending) {
+    if (chat.filters) chips.push('Un kaut ko lētāku?', 'Un jaunāku?');
+    if (chat.ids.length >= 2) chips.push('Salīdzini pirmos divus');
+    if (chat.ids.length >= 1) chips.push('Vai pirmais ir labs pirkums?');
+  }
+  box.innerHTML = chat.turns.map(turnHtml).join('') +
+    (pending ? `<div class="flex items-center gap-3 text-sub"><span class="size-2 animate-pulse rounded-full bg-navy"></span>Domā par „${esc(pending)}”…</div>` : '') +
+    `<div class="flex flex-wrap items-center gap-2 text-sm">
+      ${chips.map((c) => `<button type="button" data-ask="${esc(c)}" class="rounded-full border border-hair px-3 py-1 text-sub hover:border-navy hover:text-navy">${esc(c)}</button>`).join('')}
+      ${chat.turns.length && !pending ? `<button type="button" id="aiReset" class="ml-auto text-faint underline underline-offset-4 hover:text-ink">Jauna saruna</button>` : ''}
+      ${last && !pending ? `<span class="w-full text-xs text-faint">${last.mode === 'claude' ? 'Atbildi sagatavoja Claude, izmantojot tikai Dealvo datus.' : 'Bezsaistes režīms: atbilde aprēķināta no Dealvo datiem.'}</span>` : ''}
+    </div>`;
+}
+
+async function askAssistant(question, focus) {
   const btn = $('#aiBtn');
   btn.disabled = true;
   btn.textContent = 'Domā…';
-  box.className = 'mt-5 rounded-lg bg-wash p-4 text-sub';
-  box.textContent = 'Meklēju piemērotākos auto…';
+  renderChat(question);
   try {
-    const r = await api('/api/assistant', { method: 'POST', body: JSON.stringify({ question }) });
-    box.className = 'mt-5 border-t border-hair pt-5';
-    box.innerHTML = `
-      <div class="flex items-start gap-3">
-        <span class="mt-0.5 grid size-7 flex-none place-items-center rounded-full bg-navy text-xs font-semibold text-paper">AI</span>
-        <div class="min-w-0">
-          <p class="max-w-[75ch] leading-relaxed">${esc(r.answer).replace(/\n/g, '<br>')}</p>
-          <p class="mt-1 text-xs text-faint">${r.mode === 'claude' ? 'Atbildi sagatavoja Claude, izmantojot tikai Dealvo datus.' : 'Bezsaistes režīms: filtri nolasīti no tava teksta.'}</p>
-        </div>
-      </div>
-      ${r.items.length ? `<div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">${r.items.slice(0, 3).map(mini).join('')}</div>` : ''}`;
-    if (r.filters) applyFilters(r.filters);
+    const r = await api('/api/assistant', {
+      method: 'POST',
+      body: JSON.stringify({
+        question,
+        context: { filters: chat.filters, ids: chat.ids, focus: focus || undefined },
+        history: chat.turns.slice(-4).map((t) => ({ q: t.q, a: t.a })),
+      }),
+    });
+    chat.turns.push({ q: question, a: r.answer, items: r.items, mode: r.mode });
+    if (r.items?.length) chat.ids = r.items.map(keyOf);
+    if (r.filters) { chat.filters = r.filters; applyFilters(r.filters); }
   } catch (err) {
-    box.className = 'mt-5 rounded-lg bg-above/10 p-4 text-above';
-    box.textContent = err.message;
+    chat.turns.push({ q: question, a: err.message, error: true });
   } finally {
+    chat.turns = chat.turns.slice(-6);
+    renderChat();
     btn.disabled = false;
     btn.textContent = 'Jautāt';
+    $('#aiInput').value = '';
   }
 }
+
+document.addEventListener('click', (e) => {
+  const chip = e.target.closest('[data-ask]');
+  if (chip) { askAssistant(chip.dataset.ask); return; }
+  if (e.target.id === 'aiReset') {
+    chat.turns = []; chat.filters = null; chat.ids = [];
+    renderChat();
+    $('#aiInput').focus();
+  }
+  const about = e.target.closest('[data-ask-about]');
+  if (about) {
+    closeCar();
+    $('#ai').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth', block: 'center' });
+    askAssistant('Vai šis ir labs pirkums?', about.dataset.askAbout);
+  }
+});
 
 // Izvēlnē ieliek vērtību; ja tādas opcijas nav (piem. AI deva 8200 €), pievieno to
 function setSelect(el, value) {
