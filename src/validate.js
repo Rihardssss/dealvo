@@ -92,6 +92,12 @@ function validateListingQuery(q = {}) {
     errors.push('minPrice nevar būt lielāka par maxPrice');
   }
 
+  // Tikai auto, kas ir vismaz 10% lētāki par tirgu
+  if (q.below !== undefined && q.below !== '') {
+    if (!['1', 'true'].includes(String(q.below))) errors.push('below: atļauts 1');
+    else out.below = true;
+  }
+
   const sorts = ['deal', 'price', 'year', 'mileage', 'newest'];
   if (q.sort) {
     if (!sorts.includes(q.sort)) errors.push(`sort: atļauts ${sorts.join(', ')}`);

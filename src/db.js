@@ -181,6 +181,12 @@ function countBySource() {
     .map((r) => [r.source, r.n]));
 }
 
+/** Sludinājumu skaits pa markām. */
+function makeCounts() {
+  return Object.fromEntries(db().prepare('SELECT make_norm AS make, COUNT(*) AS n FROM listings GROUP BY make_norm').all()
+    .map((r) => [r.make, r.n]));
+}
+
 /** Modeļi markai ar sludinājumu skaitu. */
 function modelCounts(makeName) {
   return db().prepare(`SELECT model_norm AS model, COUNT(*) AS n FROM listings
@@ -214,4 +220,4 @@ function migrateFromJson() {
   }
 }
 
-module.exports = { upsert, all, find, update, clear, clearDemo, prune, query, byModels, countBySource, modelCounts, FILE };
+module.exports = { upsert, all, find, update, clear, clearDemo, prune, query, byModels, countBySource, modelCounts, makeCounts, FILE };

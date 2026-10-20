@@ -89,3 +89,12 @@ test('scenārijs 10: sludinājuma pilnais skats ar pārdevēju un līdzīgajiem 
   assert.strictEqual((await fetch(base + '/api/listing?source=x&id=../../etc')).status, 400);
   assert.strictEqual((await fetch(base + '/api/listing?source=ss.lv&id=nav')).status, 404);
 });
+
+test('GET /api/listings?below=1 atgriež tikai auto zem tirgus', async () => {
+  const res = await fetch(`${base}/api/listings?below=1&limit=500`);
+  const data = await res.json();
+  assert.strictEqual(res.status, 200);
+  assert.ok(data.items.every((l) => l.dealScore >= 10));
+  const bad = await fetch(`${base}/api/listings?below=abc`);
+  assert.strictEqual(bad.status, 400);
+});

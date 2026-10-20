@@ -30,7 +30,8 @@ function searchListings(f = {}) {
     return [`${make}|${model}`, [make, model]];
   })).values()];
   const scored = new Map(scoreListings(db.byModels(pairs)).map((l) => [`${l.source}:${l.externalId}`, l]));
-  const items = rows.map((l) => scored.get(`${l.source}:${l.externalId}`) || l);
+  let items = rows.map((l) => scored.get(`${l.source}:${l.externalId}`) || l);
+  if (f.below) items = items.filter((l) => l.dealScore != null && l.dealScore >= 10);
 
   items.sort(SORTERS[f.sort || 'deal']);
   // Pilnās detaļas sarakstā nesūtām (tās ir /api/listing)
@@ -42,11 +43,17 @@ function searchListings(f = {}) {
  */
 function modelsFor(makeSlug) {
   const name = MAKES[makeSlug];
-  const counts = new Map(db.modelCounts(name).map((r) => [r.model, r.n]));
-  for (const m of Object.keys(MODEL_CATALOG[name] || {})) if (!counts.has(m)) counts.set(m, 0);
-  return [...counts.entries()]
-    .map(([model, count]) => ({ model, count }))
-    .sort((a, b) => b.count - a.count || a.model.localeCompare(b.model, 'lv', { numeric: true }));
+  // Apvienojam vienādus modeļus ar dažādu rakstību ("golf" un "Golf")
+  const counts = new Map();
+  for (const r of db.modelCounts(name)) {
+    const key = r.model.toLowerCase();
+    const prev = counts.get(key);
+    counts.set(key, { model: prev && prev.count >= r.n ? prev.model : r.model, count: (prev?.count || 0) + r.n });
+  }
+  // Ja datu vēl nav, rādām populārākos modeļus no kataloga
+  if (!counts.size) for (const m of Object.keys(MODEL_CATALOG[name] || {})) counts.set(m.toLowerCase(), { model: m, count: 0 });
+  // Alfabētiski, cipari pēc vērtības: 116, 118, 320, 520, X1, X5
+  return [...counts.values()].sort((a, b) => a.model.localeCompare(b.model, 'lv', { numeric: true, sensitivity: 'base' }));
 }
 
 /**

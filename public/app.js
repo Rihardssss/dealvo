@@ -63,24 +63,36 @@ function facts(l) {
   ].filter(Boolean).map((f) => `<span class="rounded bg-wash px-2 py-0.5">${esc(f)}</span>`).join('');
 }
 
-// Tieva līnija no lētākā līdz dārgākajam līdzīgajam auto; svītra = tipiskā cena; punkts = šis auto
+// Cenu salīdzinājums: augšā tirgus cena un starpība, zem tā josla no lētākā līdz dārgākajam
+// līdzīgajam auto (zaļā daļa = lētāk par tirgu, oranžā = dārgāk), aplis = šis auto.
 function gauge(l) {
   if (l.marketPrice == null || l.rangeMax === l.rangeMin) {
-    return `<p class="text-xs text-faint">Par maz līdzīgu auto, lai salīdzinātu</p>`;
+    return `<p class="text-xs text-faint">Par maz līdzīgu auto, lai salīdzinātu ar tirgu</p>`;
   }
-  const pos = (v) => ((v - l.rangeMin) / (l.rangeMax - l.rangeMin)) * 100;
-  const dot = l.dealScore >= 10 ? 'bg-below' : l.dealScore <= -10 ? 'bg-above' : 'bg-ink';
+  const pos = (v) => Math.min(100, Math.max(0, ((v - l.rangeMin) / (l.rangeMax - l.rangeMin)) * 100));
+  const diff = l.marketPrice - l.price;
+  const m = pos(l.marketPrice);
+  const p = pos(l.price);
+  const ring = l.dealScore >= 10 ? 'border-below' : l.dealScore <= -10 ? 'border-above' : 'border-ink';
+  const diffHtml = Math.abs(l.dealScore) < 3
+    ? `<span class="font-medium text-ink">atbilst tirgum</span>`
+    : diff > 0
+      ? `<span class="font-semibold text-below">${eur(diff)} lētāk</span>`
+      : `<span class="font-semibold text-above">${eur(-diff)} dārgāk</span>`;
   return `
-    <div title="Līdzīgi auto: ${eur(l.rangeMin)} līdz ${eur(l.rangeMax)}, tipiskā cena ${eur(l.marketPrice)}">
-      <div class="px-1">
-        <div class="relative h-px bg-hair">
-          <span class="absolute -top-1.5 h-3 w-px bg-faint" style="left:${pos(l.marketPrice)}%"></span>
-          <span class="absolute top-0 size-2 -translate-x-1/2 -translate-y-1/2 rounded-full ${dot}" style="left:${pos(l.price)}%"></span>
-        </div>
+    <div title="Līdzīgi auto (${l.comparables}): ${eur(l.rangeMin)}–${eur(l.rangeMax)}">
+      <div class="flex items-baseline justify-between gap-3 text-sm">
+        <span class="text-sub">Tirgus cena <span class="font-medium text-ink">${eur(l.marketPrice)}</span></span>
+        ${diffHtml}
       </div>
-      <div class="mt-2 flex justify-between text-xs text-faint">
-        <span>${eur(l.rangeMin)}</span><span>tipiski ${eur(l.marketPrice)}</span><span>${eur(l.rangeMax)}</span>
+      <div class="relative mt-2.5 h-1.5 rounded-full bg-hair">
+        <span class="absolute inset-y-0 left-0 rounded-l-full bg-below/25" style="width:${m}%"></span>
+        <span class="absolute inset-y-0 right-0 rounded-r-full bg-above/20" style="width:${100 - m}%"></span>
+        <span class="absolute -top-1 h-3.5 w-0.5 -translate-x-1/2 rounded bg-ink/60" style="left:${m}%"></span>
+        <span class="absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] ${ring} bg-paper shadow-sm" style="left:${p}%"></span>
       </div>
+      <div class="mt-1.5 flex justify-between text-[11px] text-faint"><span>${eur(l.rangeMin)}</span><span>${eur(l.rangeMax)}</span></div>
+      ${l.dealScore > 35 ? `<p class="mt-2 text-xs text-above">Aizdomīgi lēts. Pirms pirkšanas pārbaudi stāvokli un vēsturi.</p>` : ''}
     </div>`;
 }
 
@@ -342,7 +354,7 @@ let debounce;
 async function loadListings() {
   try {
     const data = await api('/api/listings?' + filters());
-    $('#count').textContent = data.total ? `${fmt.format(data.total)} auto` : 'Nekas netika atrasts';
+    $('#count').textContent = data.total ? `${fmt.format(data.total)} auto${$('#belowOnly').checked ? ' zem tirgus' : ''}` : 'Nekas netika atrasts';
     $('#showBtn').textContent = `Rādīt ${fmt.format(data.total)} auto`;
     const makeName = $('#filterMake').selectedOptions[0]?.textContent || '';
     $('#list').innerHTML = (data.refreshing
@@ -534,6 +546,13 @@ async function askAssistant(question, focus) {
 
 document.addEventListener('click', (e) => {
   if (e.target.closest('[data-open-ai]')) { openAi(); return; }
+  if (e.target.closest('[data-show-below]')) {
+    $('#belowOnly').checked = true;
+    $('#sideForm').elements.sort.value = 'deal';
+    loadListings();
+    $('#results').scrollIntoView({ behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
+    return;
+  }
   if (e.target.closest('[data-close-ai]')) { closeAi(); return; }
   if (e.target.closest('[data-show-list]')) {
     closeAi();
@@ -645,7 +664,8 @@ async function loadModels(make) {
     return;
   }
   const models = await api('/api/models?make=' + encodeURIComponent(make));
-  el.innerHTML = '<option value="">Visi modeļi</option>' + models.map((m) =>
+  const total = models.reduce((n, m) => n + m.count, 0);
+  el.innerHTML = `<option value="">Visi modeļi${total ? ` (${fmt.format(total)})` : ''}</option>` + models.map((m) =>
     `<option value="${esc(m.model)}">${esc(m.model)}${m.count ? ` (${fmt.format(m.count)})` : ''}</option>`).join('');
   el.disabled = false;
 }
@@ -872,7 +892,8 @@ document.addEventListener('click', async (e) => {
     fillRangeSelects();
     const opts = makes.map((m) => `<option value="${esc(m.slug)}">${esc(m.name)}</option>`).join('');
     $('#scrapeMake').innerHTML = opts;
-    $('#filterMake').insertAdjacentHTML('beforeend', opts);
+    $('#filterMake').insertAdjacentHTML('beforeend', makes.map((m) =>
+      `<option value="${esc(m.slug)}">${esc(m.name)}${m.count ? ` (${fmt.format(m.count)})` : ''}</option>`).join(''));
     $('#scrapeSources').innerHTML = '<legend class="field-label">Vietnes</legend>' + cfg.sources.map((s) => `
       <label class="flex items-center gap-2"><input type="checkbox" name="sources" value="${esc(s.key)}" checked class="accent-navy">
         ${esc(s.label)} <span class="text-faint">${esc(s.country)}</span></label>`).join('');

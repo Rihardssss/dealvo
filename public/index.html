@@ -57,7 +57,10 @@
       </div>
       <dl id="heroStats" class="grid grid-cols-3 gap-px overflow-hidden rounded-lg bg-paper/10 text-sm md:min-w-[26rem]">
         <div class="bg-navy px-4 py-2.5"><dt class="text-xs text-paper/55">Sludinājumi</dt><dd id="statTotal" class="mt-0.5 text-lg font-semibold tabular-nums">–</dd></div>
-        <div class="bg-navy px-4 py-2.5"><dt class="text-xs text-paper/55">Zem tirgus</dt><dd id="statDeals" class="mt-0.5 text-lg font-semibold tabular-nums text-[#7fd8b0]">–</dd></div>
+        <div class="bg-navy"><button type="button" data-show-below class="group block w-full px-4 py-2.5 text-left hover:bg-paper/5" title="Rādīt tikai auto zem tirgus cenas">
+          <dt class="flex items-center gap-1 text-xs text-paper/55 group-hover:text-paper/80">Zem tirgus <svg viewBox="0 0 12 12" class="size-3" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4.5 3l3 3-3 3"/></svg></dt>
+          <dd id="statDeals" class="mt-0.5 text-lg font-semibold tabular-nums text-[#7fd8b0] group-hover:underline group-hover:underline-offset-4">–</dd>
+        </button></div>
         <div class="bg-navy px-4 py-2.5"><dt class="text-xs text-paper/55">Atjaunots</dt><dd id="statAgo" class="mt-0.5 text-lg font-semibold">–</dd></div>
       </dl>
     </div>
@@ -144,6 +147,10 @@
               <option value="mileage">Nobraukums: mazākais</option>
               <option value="newest">Nesen pievienotie</option>
             </select>
+          </label>
+          <label class="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-below/30 bg-below-soft px-3 py-2.5 text-sm font-medium text-below has-[:checked]:border-below">
+            <span>Tikai zem tirgus</span>
+            <input type="checkbox" name="below" value="1" id="belowOnly" class="size-4 accent-[#0f7b4f]">
           </label>
           <fieldset>
             <legend class="field-label">Vietne</legend>

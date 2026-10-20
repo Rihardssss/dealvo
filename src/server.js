@@ -87,7 +87,8 @@ app.get('/api/config', (req, res) => res.json({
 }));
 
 app.get('/api/makes', (req, res) => {
-  res.json(Object.entries(MAKES).map(([slug, name]) => ({ slug, name })));
+  const counts = db.makeCounts();
+  res.json(Object.entries(MAKES).map(([slug, name]) => ({ slug, name, count: counts[name] || 0 })));
 });
 
 app.get('/api/models', (req, res) => {
@@ -110,9 +111,14 @@ app.get('/api/listing', async (req, res) => {
   if (recent.length >= 30) return res.status(429).json({ errors: ['Pārāk daudz pieprasījumu, pagaidi minūti'] });
   detailHits.set(ip, [...recent, now]);
 
-  const listing = await getListing(source, id);
-  if (!listing) return res.status(404).json({ errors: ['Sludinājums nav atrasts'] });
-  res.json(listing);
+  try {
+    const listing = await getListing(source, id);
+    if (!listing) return res.status(404).json({ errors: ['Sludinājums nav atrasts'] });
+    res.json(listing);
+  } catch (err) {
+    console.error(`[listing] ${source}:${id}`, err);
+    res.status(500).json({ errors: ['Neizdevās atvērt sludinājumu, mēģini vēlreiz'] });
+  }
 });
 
 app.get('/api/listings', (req, res) => {
@@ -133,7 +139,12 @@ app.post('/api/assistant', async (req, res) => {
   const recent = (askHits.get(ip) || []).filter((t) => now - t < 60_000);
   if (recent.length >= 10) return res.status(429).json({ errors: ['Pārāk daudz jautājumu, pagaidi minūti'] });
   askHits.set(ip, [...recent, now]);
-  res.json(await assistant.ask(req.body.question, req.body.context, req.body.history));
+  try {
+    res.json(await assistant.ask(req.body.question, req.body.context, req.body.history));
+  } catch (err) {
+    console.error('[assistant]', err);
+    res.status(500).json({ errors: ['Asistents šobrīd nevar atbildēt, mēģini vēlreiz'] });
+  }
 });
 
 // Tulkošana (lapas valodas izvēle un "Tulkot aprakstu")
@@ -205,3 +216,6 @@ if (require.main === module) {
 }
 
 module.exports = app;
+
+// Ja kaut kur paliek nenoķerta kļūda, to pierakstām žurnālā, nevis apturam visu serveri
+process.on('unhandledRejection', (err) => console.error('[nenoķerta kļūda]', err));

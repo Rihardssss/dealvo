@@ -21,7 +21,9 @@ function localDetails(l) {
 }
 
 // Apvieno pārdevēja datus: detaļu lapas dati ir precīzāki, bet tukšus laukus aizpilda no saraksta
-function mergeSeller(a = {}, b = {}) {
+function mergeSeller(a, b) {
+  a = a || {};
+  b = b || {};
   return { type: b.type || a.type || null, name: b.name || a.name || null, city: b.city || a.city || null };
 }
 
