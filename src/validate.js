@@ -78,6 +78,7 @@ function validateListingQuery(q = {}) {
     ['maxPrice', 1, 10_000_000],
     ['maxMileage', 0, 2_000_000],
     ['limit', 1, 500],
+    ['sinceHours', 1, 24 * 30],
   ];
   for (const [field, min, max] of numeric) {
     const r = toInt(q[field], { min, max, field });

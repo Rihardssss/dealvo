@@ -53,7 +53,7 @@
     <div class="mx-auto flex max-w-7xl flex-col gap-5 px-4 sm:px-6 md:flex-row md:items-end md:justify-between">
       <div>
         <h1 class="text-[1.65rem] font-semibold leading-tight tracking-[-0.025em] sm:text-[2rem]">Atrodi auto zem tirgus cenas</h1>
-        <p class="mt-1.5 max-w-xl text-[15px] text-paper/65">Sludinājumi no ss.lv, AutoScout24 un mobile.de vienuviet. Katru auto salīdzinām ar līdzīgiem.</p>
+        <p class="mt-1.5 max-w-xl text-[15px] text-paper/65"><span id="heroSources">Sludinājumi no vairākām vietnēm</span> vienuviet. Katru auto salīdzinām ar līdzīgiem.</p>
       </div>
       <dl id="heroStats" class="grid grid-cols-3 gap-px overflow-hidden rounded-lg bg-paper/10 text-sm md:min-w-[26rem]">
         <div class="bg-navy px-4 py-2.5"><dt class="text-xs text-paper/55">Sludinājumi</dt><dd id="statTotal" class="mt-0.5 text-lg font-semibold tabular-nums">–</dd></div>
@@ -141,11 +141,11 @@
         <form id="sideForm" class="space-y-6 rounded-xl border border-hair bg-paper p-5">
           <label class="block"><span class="field-label">Kārtot</span>
             <select name="sort" class="field">
+              <option value="newest">Jaunākie sludinājumi</option>
               <option value="deal">Lielākā atlaide pret tirgu</option>
               <option value="price">Cena: lētākie</option>
               <option value="year">Gads: jaunākie</option>
               <option value="mileage">Nobraukums: mazākais</option>
-              <option value="newest">Nesen pievienotie</option>
             </select>
           </label>
           <label class="flex cursor-pointer items-center justify-between gap-3 rounded-lg border border-below/30 bg-below-soft px-3 py-2.5 text-sm font-medium text-below has-[:checked]:border-below">

@@ -17,6 +17,11 @@ const LEVELS = [
 ];
 const YEARLY_LOSS = 0.08;
 
+// Bojāti auto, auto rezerves daļām, eksportam utt. — to cena nav salīdzināma ar normālu auto.
+// Tos neizmantojam tirgus cenas aprēķinā un neliekam "izdevīgāko" augšgalā.
+const DAMAGED_RE = /rezerves\s*daļ|uz\s*(?:daļām|detaļām)|(?<!nav\s)bojāts|pēc\s*avārijas|nav\s*tehnisk|nebrauc|motora\s*defekt|ātrumkārbas\s*defekt|zerleg|\bteile\b|ersatzteil|motorschaden|getriebeschaden|unfallwagen|(?<!ohne\s|keine\s)mängel|bastler|for\s*parts|not\s*running|запчаст|на\s*разбор|битая/i;
+const isDamaged = (l) => DAMAGED_RE.test(`${l.title || ''} ${l.details?.description || ''}`.slice(0, 600));
+
 function median(nums) {
   if (!nums.length) return null;
   const s = [...nums].sort((a, b) => a - b);
@@ -58,12 +63,14 @@ function scoreListings(listings) {
   // Grupējam pēc marka+modelis, lai nesalīdzinātu katru ar katru (ātrāk)
   const groups = new Map();
   for (const l of listings) {
+    if (isDamaged(l)) continue;
     const key = modelKey(l);
     if (!groups.has(key)) groups.set(key, []);
     groups.get(key).push(l);
   }
 
   return listings.map((l) => {
+    if (isDamaged(l)) return { ...l, marketPrice: null, dealScore: null, dealLabel: null, comparables: 0, damaged: true };
     const group = groups.get(modelKey(l)) || [];
     let comps = [];
     let level = LEVELS[0];
@@ -91,4 +98,4 @@ function scoreListings(listings) {
   });
 }
 
-module.exports = { scoreListings, median, isComparable, labelFor, MIN_COMPARABLES };
+module.exports = { scoreListings, median, isComparable, labelFor, isDamaged, MIN_COMPARABLES };

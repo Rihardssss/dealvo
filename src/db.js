@@ -178,6 +178,7 @@ function query(f = {}) {
   if (f.minPrice) add('price >= ?', f.minPrice);
   if (f.maxPrice) add('price <= ?', f.maxPrice);
   if (f.maxMileage) add('mileage IS NOT NULL AND mileage <= ?', f.maxMileage);
+  if (f.sinceHours) add('first_seen >= ?', new Date(Date.now() - f.sinceHours * 3600_000).toISOString());
 
   const sql = `SELECT * FROM listings ${where.length ? 'WHERE ' + where.join(' AND ') : ''} ORDER BY id`;
   return withHistory(db().prepare(sql).all(...params));

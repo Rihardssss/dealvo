@@ -46,6 +46,7 @@ function photo(l, cls = '') {
 }
 
 function dealBadge(l, size = 'sm') {
+  if (l.damaged) return `<span class="inline-block rounded ${size === 'lg' ? 'px-2.5 py-1 text-sm' : 'px-2 py-0.5 text-xs'} bg-above/10 font-medium text-above">bojāts / daļām</span>`;
   if (l.dealScore == null) return '';
   const big = size === 'lg' ? 'px-2.5 py-1 text-sm' : 'px-2 py-0.5 text-xs';
   if (l.dealScore >= 10) return `<span class="inline-block rounded ${big} bg-below-soft font-semibold text-below">${pct(l.dealScore)}% zem tirgus</span>`;
@@ -66,6 +67,7 @@ function facts(l) {
 // Cenu salīdzinājums: augšā tirgus cena un starpība, zem tā josla no lētākā līdz dārgākajam
 // līdzīgajam auto (zaļā daļa = lētāk par tirgu, oranžā = dārgāk), aplis = šis auto.
 function gauge(l) {
+  if (l.damaged) return `<p class="text-xs text-above">Bojāts vai rezerves daļām, tāpēc ar tirgu nesalīdzinām</p>`;
   if (l.marketPrice == null || l.rangeMax === l.rangeMin) {
     return `<p class="text-xs text-faint">Par maz līdzīgu auto, lai salīdzinātu ar tirgu</p>`;
   }
@@ -399,7 +401,9 @@ function ago(iso) {
 }
 
 async function loadTop() {
-  const data = await api('/api/listings?sort=deal&limit=4');
+  // Izdevīgākie no pēdējām 2 dienām, lai augšā nestāv vieni un tie paši auto; ja tādu nav — no visiem
+  let data = await api('/api/listings?sort=deal&limit=4&sinceHours=48');
+  if (data.items.filter((d) => d.dealScore > 0).length < 4) data = await api('/api/listings?sort=deal&limit=4');
   const deals = data.items.filter((d) => d.dealScore != null && d.dealScore > 0);
   $('#topGrid').innerHTML = deals.length
     ? deals.map(tile).join('')
@@ -416,7 +420,9 @@ async function loadStats() {
   $('#statDeals').textContent = fmt.format(s.superDeals + s.goodDeals);
   $('#statAgo').textContent = s.lastScanAt ? ago(s.lastScanAt) : '—';
   $('#livePill').classList.toggle('md:flex', Boolean(s.total));
-  $('#liveText').textContent = `${Object.keys(s.bySource).map(sourceLabel).join(' · ')}`;
+  const names = Object.keys(s.bySource).map(sourceLabel);
+  $('#liveText').textContent = names.join(' · ');
+  if (names.length) $('#heroSources').textContent = `Sludinājumi no ${names.length > 1 ? `${names.slice(0, -1).join(', ')} un ${names.at(-1)}` : names[0]}`;
   // Vietņu filtrs sānjoslā — rādām tikai tās, kurām ir dati
   const current = new FormData($('#sideForm')).get('source') || '';
   $('#sourceRadios').innerHTML = [['', 'Visas', s.total], ...Object.entries(s.bySource).map(([k, n]) => [k, sourceLabel(k), n])]

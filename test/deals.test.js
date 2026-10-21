@@ -50,3 +50,12 @@ test('ja līdzīgo ir maz, meklē plašāk un pielāgo cenu pēc gada', () => {
   assert.ok(a.marketPrice > 4000 && a.marketPrice < 7000, `tirgus cena ${a.marketPrice}`);
   assert.ok(a.dealScore != null);
 });
+
+test('bojāti auto un auto rezerves daļām netiek salīdzināti un nav "izdevīgākie"', () => {
+  const c = (id, price, title) => ({ source: 'x', externalId: id, make: 'VW', model: 'Golf', year: 2012, price, mileage: 200000, title });
+  const list = [c('a', 400, 'Golf uz daļām'), c('b', 5000, 'Golf'), c('c', 5200, 'Golf unfallfrei'), c('d', 4800, 'Golf bez defektiem'), c('e', 5100, 'Golf')];
+  const scored = scoreListings(list);
+  assert.strictEqual(scored[0].damaged, true);
+  assert.strictEqual(scored[0].dealScore, null);
+  assert.ok(scored.slice(1).every((l) => !l.damaged && l.comparables === 3));
+});
