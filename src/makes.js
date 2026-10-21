@@ -42,8 +42,20 @@ function normalizeMake(raw) {
 
 // Modeļu nosaukumi atšķiras ("320d" vs "320", "Golf VII" vs "Golf", "C220" vs "C").
 // Salīdzināšanai ņemam pirmo vārdu bez dzinēja apzīmējuma.
+// Modeļi no vairākiem vārdiem, kurus pirmais vārds vien nesaprot ("Land Cruiser", "Santa Fe")
+const MODEL_FIX = {
+  Toyota: { land: 'Land Cruiser', rav: 'RAV4', urban: 'Urban Cruiser', mr: 'MR2' },
+  Hyundai: { santa: 'Santa Fe' },
+  Renault: { grand: 'Grand Scenic' },
+  Kia: { pro_ceed: 'ProCeed' },
+};
+
 function normalizeModel(raw, make) {
-  const first = String(raw || '').trim().split(/[\s/]+/)[0] || '';
+  const words = String(raw || '').trim().split(/[\s/]+/);
+  const first = words[0] || '';
+  if (/^[-–.]+$/.test(first)) return '';
+  const fix = MODEL_FIX[normalizeMake(make)]?.[first.toLowerCase()];
+  if (fix) return fix;
   // BMW "320d" / "520i" → "320" / "520"; "A4", "X5", "V60" paliek
   if (/^\d{3}[a-z]{1,2}$/i.test(first)) return first.replace(/[a-z]+$/i, '');
   // Mercedes "C220", "E320d", "GLC300" → "C", "E", "GLC" (klase)

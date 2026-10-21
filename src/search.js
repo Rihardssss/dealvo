@@ -64,7 +64,13 @@ function modelsFor(makeSlug) {
     head.count += m.count;
     out.push({ ...m, group: series });
   }
-  return out;
+  // Mercedes klases kā ss.lv: "C" → "C klase"; "Citi" (ss.lv kategorija) — saraksta beigās
+  const CLASSES = ['A', 'B', 'C', 'E', 'G', 'S', 'V', 'R', 'X', 'CL', 'GL', 'SL', 'T'];
+  for (const m of out) {
+    if (name === 'Mercedes' && CLASSES.includes(m.model)) m.label = `${m.model} klase`;
+    if (/^cit(i|s)$/i.test(m.model)) m.label = 'Citi modeļi';
+  }
+  return [...out.filter((m) => m.label !== 'Citi modeļi'), ...out.filter((m) => m.label === 'Citi modeļi')];
 }
 
 /**

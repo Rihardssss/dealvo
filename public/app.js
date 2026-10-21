@@ -668,8 +668,8 @@ async function loadModels(make) {
   const n = (c) => (c ? ` (${fmt.format(c)})` : '');
   // Sērijas (BMW "3. sērija") — treknrakstā, to modeļi zem tām ar atkāpi
   el.innerHTML = `<option value="">Visi modeļi${n(total)}</option>` + models.map((m) =>
-    m.series ? `<option value="${esc(m.model)}" style="font-weight:600">${esc(m.model)}${n(m.count)}</option>`
-      : `<option value="${esc(m.model)}">${m.group ? '\u00a0\u00a0\u00a0\u00a0' : ''}${esc(m.model)}${n(m.count)}</option>`).join('');
+    m.series ? `<option value="${esc(m.model)}" style="font-weight:600">${esc(m.label || m.model)}${n(m.count)}</option>`
+      : `<option value="${esc(m.model)}">${m.group ? '\u00a0\u00a0\u00a0\u00a0' : ''}${esc(m.label || m.model)}${n(m.count)}</option>`).join('');
   el.disabled = false;
 }
 $('#filterMake').addEventListener('change', (e) => loadModels(e.target.value).then(loadListings));

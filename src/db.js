@@ -21,7 +21,20 @@ function db() {
   conn.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
   conn.exec(fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8'));
   migrateFromJson();
+  renormalize();
   return conn;
+}
+
+// Ja modeļu nosaukumu apvienošanas noteikumi mainās, pārrēķinām model_norm esošajiem datiem
+function renormalize() {
+  const rows = conn.prepare('SELECT id, make, model, model_norm FROM listings').all();
+  const upd = conn.prepare('UPDATE listings SET model_norm = ? WHERE id = ?');
+  conn.exec('BEGIN');
+  for (const r of rows) {
+    const n = normalizeModel(r.model, r.make) || null;
+    if (n !== r.model_norm) upd.run(n, r.id);
+  }
+  conn.exec('COMMIT');
 }
 
 // ---------- Pārveidošana starp tabulas rindu un objektu, ko izmanto pārējā lietotne ----------

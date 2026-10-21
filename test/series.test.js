@@ -25,3 +25,15 @@ test('AI saprot "3 sērija"', () => {
   assert.strictEqual(parseQuestion('bmw 3 sērija līdz 6000').model, '3. sērija');
   assert.strictEqual(parseQuestion('5. sērijas universālis').make, 'bmw');
 });
+
+test('Toyota "Land Cruiser" un "RAV 4" apvienoti, Mercedes klases un "Citi" beigās', () => {
+  const t = (id, model, make = 'Toyota') => ({ ...car(id, model), make, title: `${make} ${model}` });
+  db.upsert([t('t1', 'Land Cruiser'), t('t2', 'Land Cruiser 200'), t('t3', 'RAV 4'), t('t4', 'RAV4'),
+    t('m1', 'C 220', 'Mercedes-Benz'), t('m2', 'Citi', 'Mercedes-Benz'), t('m3', 'CLA', 'Mercedes-Benz')]);
+  const toyota = modelsFor('toyota').map((m) => `${m.model}:${m.count}`);
+  assert.ok(toyota.includes('Land Cruiser:2'), toyota.join());
+  assert.ok(toyota.includes('RAV4:2'), toyota.join());
+  const merc = modelsFor('mercedes');
+  assert.strictEqual(merc.find((m) => m.model === 'C').label, 'C klase');
+  assert.strictEqual(merc.at(-1).label, 'Citi modeļi');
+});
