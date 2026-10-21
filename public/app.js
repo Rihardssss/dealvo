@@ -664,9 +664,12 @@ async function loadModels(make) {
     return;
   }
   const models = await api('/api/models?make=' + encodeURIComponent(make));
-  const total = models.reduce((n, m) => n + m.count, 0);
-  el.innerHTML = `<option value="">Visi modeļi${total ? ` (${fmt.format(total)})` : ''}</option>` + models.map((m) =>
-    `<option value="${esc(m.model)}">${esc(m.model)}${m.count ? ` (${fmt.format(m.count)})` : ''}</option>`).join('');
+  const total = models.filter((m) => !m.group).reduce((n, m) => n + m.count, 0);
+  const n = (c) => (c ? ` (${fmt.format(c)})` : '');
+  // Sērijas (BMW "3. sērija") — treknrakstā, to modeļi zem tām ar atkāpi
+  el.innerHTML = `<option value="">Visi modeļi${n(total)}</option>` + models.map((m) =>
+    m.series ? `<option value="${esc(m.model)}" style="font-weight:600">${esc(m.model)}${n(m.count)}</option>`
+      : `<option value="${esc(m.model)}">${m.group ? '\u00a0\u00a0\u00a0\u00a0' : ''}${esc(m.model)}${n(m.count)}</option>`).join('');
   el.disabled = false;
 }
 $('#filterMake').addEventListener('change', (e) => loadModels(e.target.value).then(loadListings));

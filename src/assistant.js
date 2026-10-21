@@ -88,8 +88,11 @@ function parseQuestion(q) {
   }
 
   {
+    // BMW sērija: "3. sērija", "3 series", "trešā sērija", "3er"
+    const ser = t.match(/[\s(](\d)\.?\s*(?:sērij|serij|series)|[\s(](\d)er[\s,.?!]/);
     const m = findModel(t, f.make);
-    if (m) { f.make = m.make; f.model = m.model; }
+    if (ser && (!f.make || f.make === 'bmw')) { f.make = 'bmw'; f.model = `${ser[1] || ser[2]}. sērija`; }
+    else if (m) { f.make = m.make; f.model = m.model; }
   }
 
   // Cenu diapazons: "no 3000 līdz 6000", "3000-6000 €", "starp 3k un 6k"

@@ -103,4 +103,12 @@ function bodyFor(make, model) {
   return hit ? hit[1] : null;
 }
 
-module.exports = { MAKE_TABLE, MODEL_CATALOG, BODY_TYPES, normalizeMake, normalizeModel, bodyLv, bodyFor };
+// BMW sērijas kā ss.lv: 316/318/320/330 → "3. sērija"; X, Z, i un M modeļi paliek atsevišķi
+const SERIES_RE = /^(\d)\. sērija$/;
+function seriesOf(make, model) {
+  if (normalizeMake(make) !== 'BMW') return null;
+  const m = String(model || '').match(/^(\d)\d\d[a-z]*$/i);
+  return m ? `${m[1]}. sērija` : null;
+}
+
+module.exports = { MAKE_TABLE, MODEL_CATALOG, BODY_TYPES, normalizeMake, normalizeModel, bodyLv, bodyFor, seriesOf, SERIES_RE };

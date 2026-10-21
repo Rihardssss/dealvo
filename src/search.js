@@ -4,7 +4,7 @@
 const db = require('./db');
 const { scoreListings } = require('./deals');
 const { MAKES } = require('./validate');
-const { normalizeMake, normalizeModel, MODEL_CATALOG } = require('./makes');
+const { normalizeMake, normalizeModel, MODEL_CATALOG, seriesOf } = require('./makes');
 
 const SORTERS = {
   deal: (a, b) => (b.dealScore ?? -Infinity) - (a.dealScore ?? -Infinity),
@@ -53,7 +53,18 @@ function modelsFor(makeSlug) {
   // Ja datu vēl nav, rādām populārākos modeļus no kataloga
   if (!counts.size) for (const m of Object.keys(MODEL_CATALOG[name] || {})) counts.set(m.toLowerCase(), { model: m, count: 0 });
   // Alfabētiski, cipari pēc vērtības: 116, 118, 320, 520, X1, X5
-  return [...counts.values()].sort((a, b) => a.model.localeCompare(b.model, 'lv', { numeric: true, sensitivity: 'base' }));
+  const sorted = [...counts.values()].sort((a, b) => a.model.localeCompare(b.model, 'lv', { numeric: true, sensitivity: 'base' }));
+  // BMW: grupējam pa sērijām — vispirms "3. sērija" ar kopējo skaitu, zem tās 316, 318, 320...
+  const out = [];
+  for (const m of sorted) {
+    const series = seriesOf(name, m.model);
+    if (!series) { out.push(m); continue; }
+    let head = out.find((x) => x.model === series);
+    if (!head) { head = { model: series, count: 0, series: true }; out.push(head); }
+    head.count += m.count;
+    out.push({ ...m, group: series });
+  }
+  return out;
 }
 
 /**

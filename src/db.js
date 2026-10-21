@@ -154,7 +154,9 @@ function query(f = {}) {
   const add = (sql, ...values) => { where.push(sql); params.push(...values); };
 
   if (f.makeName) add('make_norm = ?', f.makeName);
-  if (f.model) add('(lower(model_norm) = lower(?) OR lower(model) = lower(?))', f.model, f.model);
+  const series = f.model && f.model.match(/^(\d)\. sērija$/);
+  if (series) add("model_norm GLOB ?", `${series[1]}[0-9][0-9]`); // "3. sērija" → 300–399
+  else if (f.model) add('(lower(model_norm) = lower(?) OR lower(model) = lower(?))', f.model, f.model);
   if (f.body) add('body = ?', f.body);
   if (f.fuel) add('fuel = ?', f.fuel);
   if (f.source) add('source = ?', f.source);
