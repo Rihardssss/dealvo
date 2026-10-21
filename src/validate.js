@@ -5,7 +5,7 @@ const { MAKE_TABLE, BODY_TYPES } = require('./makes');
 
 // slug → nosaukums (piem. 'bmw' → 'BMW'); skrāpēt var tikai šīs markas
 const MAKES = Object.fromEntries(Object.entries(MAKE_TABLE).map(([k, v]) => [k, v.name]));
-const SOURCE_KEYS = ['sslv', 'autoscout24', 'mobilede'];
+const SOURCE_KEYS = ['sslv', 'autoscout24', 'mobilede', 'otomoto'];
 
 const CURRENT_YEAR = new Date().getFullYear();
 

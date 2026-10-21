@@ -11,7 +11,7 @@ const { fetchHtml, digits } = require('./http');
 
 // Tikai šīs vietnes drīkst ielādēt (aizsardzība pret SSRF — serveris nevar
 // tikt izmantots, lai pieprasītu patvaļīgas adreses)
-const ALLOWED_HOSTS = [/^(www\.)?ss\.lv$/, /^(www\.)?autoscout24\.[a-z.]+$/, /^suchen\.mobile\.de$/];
+const ALLOWED_HOSTS = [/^(www\.)?ss\.lv$/, /^(www\.)?autoscout24\.[a-z.]+$/, /^suchen\.mobile\.de$/, /^(www\.)?otomoto\.pl$/];
 
 function isAllowedUrl(url) {
   try {

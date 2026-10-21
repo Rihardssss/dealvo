@@ -62,7 +62,7 @@ function modelsFor(makeSlug) {
     let head = out.find((x) => x.model === series);
     if (!head) { head = { model: series, count: 0, series: true }; out.push(head); }
     head.count += m.count;
-    out.push({ ...m, group: series });
+    if (m.model !== series) out.push({ ...m, group: series }); // "3. sērija" bez konkrēta modeļa — tikai kopskaitā
   }
   // Mercedes klases kā ss.lv: "C" → "C klase"; "Citi" (ss.lv kategorija) — saraksta beigās
   const CLASSES = ['A', 'B', 'C', 'E', 'G', 'S', 'V', 'R', 'X', 'CL', 'GL', 'SL', 'T'];

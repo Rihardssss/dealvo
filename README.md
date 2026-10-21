@@ -1,12 +1,12 @@
 # Dealvo
 
-Lietotu auto meklētājs. Savāc sludinājumus no ss.lv, AutoScout24 un mobile.de un parāda, kuri auto ir lētāki nekā līdzīgi auto tirgū.
+Lietotu auto meklētājs. Savāc sludinājumus no ss.lv (Latvija), AutoScout24 (Vācija) un otomoto.pl (Polija) un parāda, kuri auto ir lētāki nekā līdzīgi auto tirgū. mobile.de nolasītājs arī ir, bet mobile.de bloķē automātisku nolasīšanu.
 
 Victoria projektu nedēļa, 2026.
 
 ## Ko tas dara
 
-- Nolasa sludinājumus no trim vietnēm, pats ik pēc 3 min (pa vienai markai); tukšu datubāzi piepilda uzreiz
+- Nolasa sludinājumus no vairākām vietnēm, pats ik pēc 3 min (pa vienai markai); tukšu datubāzi piepilda uzreiz
 - Lapa pati atjaunojas, kad parādās jauni dati
 - Ja kāds atver marku ar veciem datiem, to uzreiz atjauno
 - Salīdzina katru auto ar līdzīgiem un parāda, par cik % tas ir lētāks vai dārgāks
@@ -64,7 +64,7 @@ Katram auto atrod līdzīgus auto (tā pati marka un modelis, gads ±2, nobrauku
 | Dalībnieks | Grupa | Atbildība |
 |---|---|---|
 | Rihards Indars | PX23 | Ideja, serveris, datu nolasīšana, cenu aprēķins, AI asistents |
-| Miks Henrijs Ozoliņš | PX24 | Testēšana ar īstām vietnēm (ss.lv, AutoScout24, mobile.de), kļūdu saraksts, TESTI.md |
+| Miks Henrijs Ozoliņš | PX24 | Testēšana ar īstām vietnēm (ss.lv, AutoScout24, otomoto.pl, mobile.de), kļūdu saraksts, TESTI.md |
 | Kristiāns Štībelis | PX24 | Publicēšana internetā (Cloudflare Tunnel, dealvo.riciboy.eu), DEPLOY.md |
 | Kārlis Gustavs Roštoks | PX23 | AI asistenta testēšana un uzlabošana, datubāzes shēma (ER diagramma) |
 | Rihards Berķis | PX24 | Dizaina un lietojamības pārbaude uz datora un telefona, prezentācija un demo scenārijs |

@@ -56,6 +56,12 @@ function normalizeModel(raw, make) {
   if (/^[-–.]+$/.test(first)) return '';
   const fix = MODEL_FIX[normalizeMake(make)]?.[first.toLowerCase()];
   if (fix) return fix;
+  // otomoto u.c.: "Seria 3" / "3 Series" / "3er" (BMW sērija bez konkrēta modeļa) → "3. sērija"
+  const series = String(raw || '').match(/^(?:seria|series|serie|reihe)\s*(\d)\b|^(\d)\s*(?:series|er)\b|^(\d)\. sērija$/i);
+  if (series && normalizeMake(make) === 'BMW') return `${series[1] || series[2] || series[3]}. sērija`;
+  // "Klasa C" / "C-Klasse" / "Classe E" → "C", "E"
+  const cls = String(raw || '').match(/^(?:klasa|classe|class|klasse)\s+([a-z]{1,3})\b|^([a-z]{1,3})[- ]?(?:klasse|klasa|class)\b/i);
+  if (cls) return (cls[1] || cls[2]).toUpperCase();
   // BMW "320d" / "520i" → "320" / "520"; "A4", "X5", "V60" paliek
   if (/^\d{3}[a-z]{1,2}$/i.test(first)) return first.replace(/[a-z]+$/i, '');
   // Mercedes "C220", "E320d", "GLC300" → "C", "E", "GLC" (klase)
@@ -119,7 +125,7 @@ function bodyFor(make, model) {
 const SERIES_RE = /^(\d)\. sērija$/;
 function seriesOf(make, model) {
   if (normalizeMake(make) !== 'BMW') return null;
-  const m = String(model || '').match(/^(\d)\d\d[a-z]*$/i);
+  const m = String(model || '').match(/^(\d)\d\d[a-z]*$/i) || String(model || '').match(/^(\d)\. sērija$/);
   return m ? `${m[1]}. sērija` : null;
 }
 

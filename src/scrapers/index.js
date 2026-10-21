@@ -4,11 +4,13 @@
 const sslv = require('./sslv');
 const autoscout24 = require('./autoscout24');
 const mobilede = require('./mobilede');
+const otomoto = require('./otomoto');
 
 const SOURCES = {
   sslv: { label: 'ss.lv', country: 'LV', fetchMake: (make, pages) => sslv.fetchMake(make.sslv, make.name, pages) },
   autoscout24: { label: 'AutoScout24', country: 'DE', fetchMake: autoscout24.fetchMake },
   mobilede: { label: 'mobile.de', country: 'DE', fetchMake: mobilede.fetchMake },
+  otomoto: { label: 'otomoto.pl', country: 'PL', fetchMake: otomoto.fetchMake },
 };
 
 /**

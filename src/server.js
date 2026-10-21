@@ -47,11 +47,11 @@ const autoscan = createAutoScan({
   db,
   scrape: scrapeMake,
   makes: MAKE_TABLE,
-  sources: (process.env.AUTO_SCAN_SOURCES || 'sslv,autoscout24').split(',').map((s) => s.trim()).filter((s) => SOURCES[s]),
+  sources: (process.env.AUTO_SCAN_SOURCES || 'sslv,autoscout24,otomoto').split(',').map((s) => s.trim()).filter((s) => SOURCES[s]),
   // Lapas katram avotam: ss.lv ~30 auto lapā, AutoScout24 20 auto lapā
   pages: process.env.AUTO_SCAN_PAGES
     ? Number(process.env.AUTO_SCAN_PAGES)
-    : { sslv: 5, autoscout24: 10, mobilede: 2 },
+    : { sslv: 5, autoscout24: 10, mobilede: 2, otomoto: 8 },
   staleMinutes: Number(process.env.AUTO_SCAN_STALE_MINUTES) || 60,
 });
 

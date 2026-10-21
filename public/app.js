@@ -10,7 +10,7 @@ const pct = (n) => new Intl.NumberFormat('lv-LV', { maximumFractionDigits: 1 }).
 const esc = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 const safeUrl = (u) => (typeof u === 'string' && /^https:\/\//.test(u) ? u : null);
 
-const SOURCE_LABELS = { 'ss.lv': 'ss.lv', autoscout24: 'AutoScout24', 'mobile.de': 'mobile.de' };
+const SOURCE_LABELS = { 'ss.lv': 'ss.lv', autoscout24: 'AutoScout24', 'mobile.de': 'mobile.de', otomoto: 'otomoto.pl' };
 const sourceLabel = (s) => SOURCE_LABELS[s] || s;
 let config = { sources: [] };
 
