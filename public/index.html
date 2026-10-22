@@ -5,23 +5,22 @@
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Dealvo · lietoti auto no ss.lv, AutoScout24 un mobile.de</title>
   <meta name="description" content="Lietoti auto no vairākām vietnēm vienuviet. Katrs sludinājums salīdzināts ar tirgu, un AI asistents palīdz atrast izdevīgāko.">
-  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='7' fill='%2313294b'/><path d='M5 20h22M8 20v-3.5l3-.8 3.2-4.2h6.6l4 4.2 2.7.8V20' fill='none' stroke='%23fff' stroke-width='2' stroke-linejoin='round'/><circle cx='11.5' cy='20.5' r='2.3' fill='%23fff'/><circle cx='21.5' cy='20.5' r='2.3' fill='%23fff'/></svg>">
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='9' fill='%237fd8b0'/%3E%3Cg transform='translate(4 4)' fill='none' stroke='%2313294b' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M3.5 12.6V5a1.5 1.5 0 0 1 1.5-1.5h7.6a1.5 1.5 0 0 1 1.06.44l6.9 6.9a1.5 1.5 0 0 1 0 2.12l-7.6 7.6a1.5 1.5 0 0 1-2.12 0l-6.9-6.9a1.5 1.5 0 0 1-.44-1.06z'/%3E%3Cpath d='M10.5 15.5l4-4'/%3E%3C/g%3E%3Ccircle cx='12.3' cy='12.3' r='1.3' fill='%2313294b'/%3E%3C/svg%3E">
   <link rel="preload" href="fonts/geist-latin-wght-normal.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="app.css">
 </head>
 <body class="min-h-screen bg-page font-sans text-ink">
 
+  <div class="relative overflow-hidden bg-navy">
+    <div class="pointer-events-none absolute -right-40 -top-56 size-[560px] rounded-full bg-[#7fd8b0]/10 blur-3xl" aria-hidden="true"></div>
+    <div class="pointer-events-none absolute -left-32 top-24 size-[420px] rounded-full bg-[#3b6fd1]/20 blur-3xl" aria-hidden="true"></div>
   <!-- Galvene -->
-  <header class="bg-navy text-paper">
+  <header class="relative text-paper">
     <div class="mx-auto flex h-16 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6">
       <div class="flex items-center gap-8">
         <a href="/" class="flex items-center gap-2.5" aria-label="Dealvo" translate="no">
-          <span class="grid size-9 place-items-center rounded-lg bg-paper text-navy" aria-hidden="true">
-            <svg viewBox="3 8 26 16" class="w-7" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linejoin="round" stroke-linecap="round">
-              <path d="M5 20h22M8 20v-3.5l3-.8 3.2-4.2h6.6l4 4.2 2.7.8V20"/><circle cx="11.5" cy="20.5" r="2.3" fill="currentColor"/><circle cx="21.5" cy="20.5" r="2.3" fill="currentColor"/>
-            </svg>
-          </span>
-          <span class="text-lg font-semibold tracking-tight">Dealvo</span>
+          <span class="grid size-9 place-items-center rounded-xl bg-gradient-to-br from-[#9be6c3] to-[#4cc391] text-navy shadow-[inset_0_1px_0_rgb(255_255_255/0.5)]"><svg viewBox="0 0 24 24" class="size-5" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3.5 12.6V5a1.5 1.5 0 0 1 1.5-1.5h7.6a1.5 1.5 0 0 1 1.06.44l6.9 6.9a1.5 1.5 0 0 1 0 2.12l-7.6 7.6a1.5 1.5 0 0 1-2.12 0l-6.9-6.9a1.5 1.5 0 0 1-.44-1.06z"/><circle cx="8.3" cy="8.3" r="1.3" fill="currentColor" stroke="none"/><path d="M10.5 15.5l4-4"/></svg></span>
+          <span class="text-[19px] font-semibold tracking-[-0.03em]">dealvo</span>
         </a>
         <nav class="hidden items-center gap-1 text-sm text-paper/75 md:flex">
           <a href="#results" class="rounded-md px-3 py-1.5 hover:bg-paper/10 hover:text-paper">Visi auto</a>
@@ -49,25 +48,27 @@
   </header>
 
   <!-- Augšējā josla + meklēšana -->
-  <section class="bg-navy pb-24 pt-4 text-paper sm:pt-8">
-    <div class="mx-auto flex max-w-7xl flex-col gap-5 px-4 sm:px-6 md:flex-row md:items-end md:justify-between">
+  <section class="relative pb-24 pt-4 text-paper sm:pt-8">
+    <div class="relative mx-auto flex max-w-7xl flex-col gap-5 px-4 sm:px-6 md:flex-row md:items-end md:justify-between">
       <div>
         <h1 class="text-[1.65rem] font-semibold leading-tight tracking-[-0.025em] sm:text-[2rem]">Atrodi auto zem tirgus cenas</h1>
         <p class="mt-1.5 max-w-xl text-[15px] text-paper/65"><span id="heroSources">Sludinājumi no vairākām vietnēm</span> vienuviet. Katru auto salīdzinām ar līdzīgiem.</p>
       </div>
-      <dl id="heroStats" class="grid grid-cols-3 gap-px overflow-hidden rounded-lg bg-paper/10 text-sm md:min-w-[26rem]">
-        <div class="bg-navy px-4 py-2.5"><dt class="text-xs text-paper/55">Sludinājumi</dt><dd id="statTotal" class="mt-0.5 text-lg font-semibold tabular-nums">–</dd></div>
-        <div class="bg-navy"><button type="button" data-show-below class="group block w-full px-4 py-2.5 text-left hover:bg-paper/5" title="Rādīt tikai auto zem tirgus cenas">
+      <dl id="heroStats" class="grid grid-cols-3 gap-px overflow-hidden rounded-xl bg-paper/10 text-sm ring-1 ring-paper/10 backdrop-blur md:min-w-[26rem]">
+        <div class="bg-navy/80 px-4 py-3"><dt class="text-xs text-paper/55">Sludinājumi</dt><dd id="statTotal" class="mt-0.5 text-lg font-semibold tabular-nums">–</dd></div>
+        <div class="bg-navy/80"><button type="button" data-show-below class="group block w-full px-4 py-3 text-left hover:bg-paper/5" title="Rādīt tikai auto zem tirgus cenas">
           <dt class="flex items-center gap-1 text-xs text-paper/55 group-hover:text-paper/80">Zem tirgus <svg viewBox="0 0 12 12" class="size-3" fill="none" stroke="currentColor" stroke-width="1.6"><path d="M4.5 3l3 3-3 3"/></svg></dt>
           <dd id="statDeals" class="mt-0.5 text-lg font-semibold tabular-nums text-[#7fd8b0] group-hover:underline group-hover:underline-offset-4">–</dd>
         </button></div>
-        <div class="bg-navy px-4 py-2.5"><dt class="text-xs text-paper/55">Atjaunots</dt><dd id="statAgo" class="mt-0.5 text-lg font-semibold">–</dd></div>
+        <div class="bg-navy/80 px-4 py-3"><dt class="text-xs text-paper/55">Atjaunots</dt><dd id="statAgo" class="mt-0.5 text-lg font-semibold">–</dd></div>
       </dl>
     </div>
   </section>
 
-  <div class="mx-auto -mt-16 max-w-7xl px-4 sm:px-6">
-    <div class="rounded-xl bg-paper p-4 text-ink shadow-[0_24px_60px_-28px_rgb(19_41_75/0.55)] ring-1 ring-hair sm:p-6">
+  </div>
+
+  <div class="relative mx-auto -mt-16 max-w-7xl px-4 sm:px-6">
+    <div class="rounded-2xl bg-paper p-4 text-ink shadow-[0_30px_70px_-30px_rgb(19_41_75/0.5)] ring-1 ring-black/5 sm:p-7">
         <form id="searchForm" class="space-y-5" autocomplete="off">
           <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
             <label><span class="field-label">Marka</span>
@@ -112,13 +113,13 @@
 
 
       <!-- AI asistents: īss ievades lauks; atbildes atveras sānu panelī -->
-      <form id="aiForm" class="mt-5 flex flex-col gap-3 rounded-lg bg-wash p-3 sm:flex-row sm:items-center sm:p-2 sm:pl-4">
+      <form id="aiForm" class="mt-5 flex flex-col gap-3 rounded-xl bg-gradient-to-r from-[#eef6f2] to-[#eef2f9] p-3 ring-1 ring-[#7fd8b0]/30 sm:flex-row sm:items-center sm:p-2 sm:pl-4">
         <label for="aiInput" class="flex flex-none items-center gap-2 text-sm font-medium text-navy">
           <span translate="no" class="grid size-6 place-items-center rounded-md bg-navy text-[10px] font-bold text-paper">AI</span>
           Pastāsti, ko meklē
         </label>
         <div class="flex flex-1 gap-2">
-          <input id="aiInput" class="field border-transparent bg-paper" maxlength="400" placeholder="ģimenes dīzelis līdz 7000 €, ne vecāks par 2013">
+          <input id="aiInput" class="field bg-paper" maxlength="400" placeholder="ģimenes dīzelis līdz 7000 €, ne vecāks par 2013">
           <button id="aiBtn" class="btn-dark flex-none px-5">Jautāt</button>
         </div>
       </form>

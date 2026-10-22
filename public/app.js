@@ -637,8 +637,8 @@ function renderBodyTypes() {
   $('#bodyTypes').innerHTML = Object.keys(BODY_LABELS).map((key) => `
     <label class="cursor-pointer">
       <input type="radio" name="body" value="${esc(key)}" class="peer sr-only" ${key === '' ? 'checked' : ''}>
-      <span class="flex h-full flex-col items-center gap-1 rounded-lg border border-hair px-1 py-2.5 text-xs text-sub transition-colors
-        hover:border-faint peer-checked:border-navy peer-checked:bg-navy/5 peer-checked:text-navy peer-focus-visible:ring-2 peer-focus-visible:ring-navy">
+      <span class="flex h-full flex-col items-center gap-1 rounded-xl border border-hair px-1 py-2.5 text-xs text-sub transition
+        hover:border-faint hover:text-ink peer-checked:border-navy peer-checked:font-medium peer-checked:text-navy peer-checked:ring-4 peer-checked:ring-navy/10 peer-focus-visible:ring-2 peer-focus-visible:ring-navy">
         <svg viewBox="0 0 48 24" class="h-8 w-16" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
           ${BODY_ICONS[key]}${key ? '<circle cx="14" cy="17" r="3.2" fill="var(--color-paper)"/><circle cx="35" cy="17" r="3.2" fill="var(--color-paper)"/>' : ''}
         </svg>
