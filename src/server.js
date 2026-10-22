@@ -3,8 +3,8 @@ const path = require('path');
 const db = require('./db');
 const demo = require('./scrapers/demo');
 const { SOURCES, scrapeMake } = require('./scrapers');
-const { scoreListings } = require('./deals');
-const { searchListings, modelsFor } = require('./search');
+const search = require('./search');
+const { searchListings, modelsFor } = search;
 const assistant = require('./assistant');
 const translate = require('./translate');
 const { getListing } = require('./listing-details');
@@ -162,16 +162,7 @@ app.post('/api/translate', async (req, res) => {
 app.get('/api/scan-status', (req, res) => res.json({ enabled: AUTO_SCAN, ...autoscan.status() }));
 
 app.get('/api/stats', (req, res) => {
-  const scored = scoreListings(db.all());
-  const bySource = db.countBySource();
-  res.json({
-    total: scored.length,
-    bySource,
-    superDeals: scored.filter((l) => l.dealLabel === 'super').length,
-    goodDeals: scored.filter((l) => l.dealLabel === 'labs').length,
-    priceDrops: scored.filter((l) => l.priceHistory?.length && l.price < l.priceHistory.at(-1).price).length,
-    lastScanAt: autoscan.status().lastScanAt,
-  });
+  res.json({ ...search.stats(), bySource: db.countBySource(), lastScanAt: autoscan.status().lastScanAt });
 });
 
 app.post('/api/scrape', requireAdmin, async (req, res) => {

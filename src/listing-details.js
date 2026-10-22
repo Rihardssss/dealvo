@@ -46,15 +46,17 @@ async function getListing(source, externalId) {
   const base = localDetails(item);
   const d = details || base;
 
-  const scored = scoreListings(db.all());
-  const me = scored.find((l) => l.source === source && l.externalId === externalId);
+  const { items: scored, byKey } = require('./search').scoredAll();
+  const me = byKey.get(`${source}:${externalId}`) || scoreListings([item])[0];
   const similar = scored
     .filter((o) => isComparable(me, o))
     .sort((a, b) => (b.dealScore ?? -Infinity) - (a.dealScore ?? -Infinity))
-    .slice(0, 4);
+    .slice(0, 4)
+    .map(({ makeNorm, modelNorm, dbId, details, detailsAt, ...o }) => o);
 
+  const { makeNorm, modelNorm, dbId, ...pub } = me;
   return {
-    ...me,
+    ...pub,
     details: {
       photos: d.photos?.length ? d.photos : base.photos,
       description: descText(d.description),  // arī vecajiem saglabātajiem aprakstiem

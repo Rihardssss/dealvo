@@ -60,22 +60,29 @@ function labelFor(score) {
  * Neizmaina oriģinālos objektus.
  */
 function scoreListings(listings) {
-  // Grupējam pēc marka+modelis, lai nesalīdzinātu katru ar katru (ātrāk)
+  // Atslēgu un "bojāts" pārbaudi rēķinām vienreiz katram auto (nevis katrā salīdzinājumā),
+  // un grupējam pēc marka+modelis, lai salīdzinātu tikai viena modeļa ietvaros — tā ir ātri arī ar 10 000+ auto.
+  const keys = listings.map(modelKey);
+  const damaged = listings.map(isDamaged);
   const groups = new Map();
-  for (const l of listings) {
-    if (isDamaged(l)) continue;
-    const key = modelKey(l);
-    if (!groups.has(key)) groups.set(key, []);
-    groups.get(key).push(l);
-  }
+  listings.forEach((l, i) => {
+    if (damaged[i]) return;
+    if (!groups.has(keys[i])) groups.set(keys[i], []);
+    groups.get(keys[i]).push(l);
+  });
 
-  return listings.map((l) => {
-    if (isDamaged(l)) return { ...l, marketPrice: null, dealScore: null, dealLabel: null, comparables: 0, damaged: true };
-    const group = groups.get(modelKey(l)) || [];
+  const near = (l, o, lv) => o !== l
+    && !(o.source === l.source && o.externalId === l.externalId)
+    && Math.abs(l.year - o.year) <= lv.years
+    && (l.mileage == null || o.mileage == null || Math.abs(l.mileage - o.mileage) <= lv.km);
+
+  return listings.map((l, i) => {
+    if (damaged[i]) return { ...l, marketPrice: null, dealScore: null, dealLabel: null, comparables: 0, damaged: true };
+    const group = groups.get(keys[i]) || [];
     let comps = [];
     let level = LEVELS[0];
     for (const lv of LEVELS) {
-      comps = group.filter((o) => isComparable(l, o, lv));
+      comps = group.filter((o) => near(l, o, lv));
       level = lv;
       if (comps.length >= MIN_COMPARABLES) break;
     }
@@ -85,6 +92,9 @@ function scoreListings(listings) {
     const prices = comps.map((c) => Math.round(adjusted(l, c, level)));
     const marketPrice = Math.round(median(prices));
     const dealScore = Math.round(((marketPrice - l.price) / marketPrice) * 1000) / 10;
+    let rangeMin = l.price;
+    let rangeMax = l.price;
+    for (const p of prices) { if (p < rangeMin) rangeMin = p; if (p > rangeMax) rangeMax = p; }
     return {
       ...l,
       marketPrice,
@@ -92,8 +102,8 @@ function scoreListings(listings) {
       dealLabel: labelFor(dealScore),
       comparables: comps.length,
       // Līdzīgo auto cenu diapazons — frontendā zīmē "cenu skalu"
-      rangeMin: Math.min(...prices, l.price),
-      rangeMax: Math.max(...prices, l.price),
+      rangeMin,
+      rangeMax,
     };
   });
 }

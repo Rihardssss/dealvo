@@ -13,6 +13,9 @@ const FILE = path.join(DATA_DIR, 'dealvo.db');
 const OLD_JSON = path.join(DATA_DIR, 'listings.json');
 
 let conn = null;
+// Datu versija: palielinās pie katras izmaiņas, lai kešs (search.js) zinātu, kad pārrēķināt
+let version = 0;
+const bump = () => { version++; };
 
 function db() {
   if (conn) return conn;
@@ -35,6 +38,7 @@ function renormalize() {
     if (n !== r.model_norm) upd.run(n, r.id);
   }
   conn.exec('COMMIT');
+  bump();
 }
 
 // ---------- Pārveidošana starp tabulas rindu un objektu, ko izmanto pārējā lietotne ----------
@@ -63,6 +67,7 @@ function fromRow(r, history = []) {
     gearbox: r.gearbox, color: r.color, mileage: r.mileage, price: r.price,
     image: r.image, thumb: r.thumb, country: r.country, seller,
     details: r.details ? JSON.parse(r.details) : undefined, detailsAt: r.details_at || undefined,
+    makeNorm: r.make_norm, modelNorm: r.model_norm,
     firstSeen: r.first_seen, lastSeen: r.last_seen, priceHistory: history,
   };
 }
@@ -115,6 +120,7 @@ function upsert(items) {
     d.exec('ROLLBACK');
     throw err;
   }
+  bump();
   return { added, updated, priceDrops };
 }
 
@@ -130,17 +136,22 @@ function update(source, externalId, patch) {
 
 function clear() {
   db().exec('DELETE FROM listings');
+  bump();
 }
 
 /** Izdzēš sludinājumus, kas vairāk kā N dienas nav redzēti vietnē (pārdoti). Demo datus neaiztiek. */
 function prune(maxAgeDays, now = Date.now()) {
   const limit = new Date(now - maxAgeDays * 24 * 60 * 60 * 1000).toISOString();
-  return Number(db().prepare("DELETE FROM listings WHERE source NOT LIKE 'demo%' AND last_seen < ?").run(limit).changes);
+  const n = Number(db().prepare("DELETE FROM listings WHERE source NOT LIKE 'demo%' AND last_seen < ?").run(limit).changes);
+  if (n) bump();
+  return n;
 }
 
 /** Izdzēš tikai demo datus. */
 function clearDemo() {
-  return Number(db().prepare("DELETE FROM listings WHERE source LIKE 'demo%'").run().changes);
+  const n = Number(db().prepare("DELETE FROM listings WHERE source LIKE 'demo%'").run().changes);
+  if (n) bump();
+  return n;
 }
 
 // ---------- Lasīšana ----------
@@ -155,6 +166,12 @@ function find(source, externalId) {
 
 function all() {
   return withHistory(db().prepare('SELECT * FROM listings ORDER BY id').all());
+}
+
+/** Visi sludinājumi bez detaļām (ātrāk; sarakstiem un tirgus cenas aprēķinam). */
+function allLight() {
+  const cols = ['id', ...COLUMNS, 'details_at', 'first_seen', 'last_seen'].join(', ');
+  return withHistory(db().prepare(`SELECT ${cols} FROM listings ORDER BY id`).all());
 }
 
 /**
@@ -236,4 +253,4 @@ function migrateFromJson() {
   }
 }
 
-module.exports = { upsert, all, find, update, clear, clearDemo, prune, query, byModels, countBySource, modelCounts, makeCounts, FILE };
+module.exports = { upsert, all, find, update, clear, clearDemo, prune, query, byModels, countBySource, modelCounts, makeCounts, allLight, version: () => version, FILE };

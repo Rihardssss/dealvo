@@ -16,7 +16,7 @@ function createAutoScan({ db, scrape, makes, sources, pages = 2, staleMinutes = 
   let timer = null;
 
   // Pēc restarta: nosakām, kad katra marka pēdējo reizi redzēta datos
-  for (const l of db.all()) {
+  for (const l of (db.allLight || db.all)()) {
     if (String(l.source).startsWith('demo')) continue;
     const slug = Object.keys(makes).find((k) => makes[k].name === normalizeMake(l.make));
     const t = new Date(l.lastSeen).getTime();
