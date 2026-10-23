@@ -24,8 +24,18 @@ function db() {
   conn.exec('PRAGMA journal_mode = WAL; PRAGMA foreign_keys = ON;');
   conn.exec(fs.readFileSync(path.join(__dirname, 'schema.sql'), 'utf8'));
   migrateFromJson();
+  fixOldRows();
   renormalize();
   return conn;
+}
+
+// Vecāku versiju kļūdu labošana jau saglabātajos datos:
+// otomoto dzinējs bija teksts ("1.6 l"), un nobraukums tūkstošos ("302") netika pārrēķināts
+function fixOldRows() {
+  conn.exec(`UPDATE listings SET engine = NULLIF(CAST(REPLACE(REPLACE(engine, ' l', ''), ',', '.') AS REAL), 0)
+    WHERE typeof(engine) = 'text'`);
+  conn.prepare('UPDATE listings SET mileage = mileage * 1000 WHERE mileage > 0 AND mileage < 1000 AND year <= ?')
+    .run(new Date().getFullYear() - 3);
 }
 
 // Ja modeļu nosaukumu apvienošanas noteikumi mainās, pārrēķinām model_norm esošajiem datiem
@@ -43,6 +53,19 @@ function renormalize() {
 
 // ---------- Pārveidošana starp tabulas rindu un objektu, ko izmanto pārējā lietotne ----------
 
+// Daļa pārdevēju nobraukumu raksta tūkstošos ("302" nozīmē 302 000 km). Vismaz 3 gadus vecam auto
+// mazāk par 1000 km nav ticami, tāpēc tādu skaitli uzskatām par tūkstošiem.
+function plausibleMileage(km, year, now = new Date().getFullYear()) {
+  if (km == null) return null;
+  return km > 0 && km < 1000 && now - year >= 3 ? km * 1000 : km;
+}
+
+// Dzinēja tilpums litros kā skaitlis ("1.6 l", "2,0" → 1.6, 2)
+function engineLiters(v) {
+  const n = typeof v === 'number' ? v : parseFloat(String(v ?? '').replace(',', '.'));
+  return Number.isFinite(n) && n > 0 && n < 10 ? n : null;
+}
+
 const COLUMNS = ['source', 'external_id', 'url', 'title', 'make', 'model', 'make_norm', 'model_norm', 'year', 'engine',
   'fuel', 'body', 'gearbox', 'color', 'mileage', 'price', 'image', 'thumb', 'country', 'seller_type', 'seller_name', 'seller_city'];
 
@@ -51,8 +74,8 @@ function toRow(l) {
   return {
     source: l.source, external_id: String(l.externalId), url: v(l.url), title: v(l.title),
     make: l.make, model: v(l.model), make_norm: normalizeMake(l.make), model_norm: normalizeModel(l.model, l.make) || null,
-    year: l.year, engine: v(l.engine), fuel: v(l.fuel), body: v(l.body) || bodyFor(l.make, l.model),
-    gearbox: v(l.gearbox), color: v(l.color), mileage: v(l.mileage), price: l.price,
+    year: l.year, engine: engineLiters(l.engine), fuel: v(l.fuel), body: v(l.body) || bodyFor(l.make, l.model),
+    gearbox: v(l.gearbox), color: v(l.color), mileage: plausibleMileage(v(l.mileage), l.year), price: l.price,
     image: v(l.image), thumb: v(l.thumb), country: v(l.country),
     seller_type: v(l.seller?.type), seller_name: v(l.seller?.name), seller_city: v(l.seller?.city),
   };

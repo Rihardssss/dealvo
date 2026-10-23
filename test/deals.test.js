@@ -84,3 +84,8 @@ test('vairāk nekā 70% zem tirgus ir aizdomīgs, nevis "super"', () => {
   assert.strictEqual(ok.suspicious, false);
   assert.strictEqual(ok.dealLabel, 'super');
 });
+
+test('ss.lv "Citi" (nezināms modelis) netiek salīdzināts ar citiem "Citi"', () => {
+  const list = ['a', 'b', 'c', 'd'].map((id, i) => car(id, 3000 + i * 2000, 2015, 150000, { make: 'BMW', model: 'Citi' }));
+  assert.ok(scoreListings(list).every((l) => l.marketPrice == null && l.comparables === 0));
+});

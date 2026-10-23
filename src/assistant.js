@@ -445,7 +445,7 @@ function offlineAnswer(question, ctx = {}) {
 // Claude režīms
 // ---------------------------------------------------------------------------
 
-const SYSTEM = `Tu esi Dealvo asistents. Dealvo salīdzina lietotu auto sludinājumus no ss.lv, AutoScout24 un mobile.de un aprēķina, cik katrs auto ir lētāks vai dārgāks par līdzīgiem auto (dealScore procentos; pozitīvs = lētāk par tirgu).
+const SYSTEM = `Tu esi Dealvo asistents. Dealvo salīdzina lietotu auto sludinājumus no ss.lv, AutoScout24 un otomoto.pl un aprēķina, cik katrs auto ir lētāks vai dārgāks par līdzīgiem auto (dealScore procentos; pozitīvs = lētāk par tirgu).
 
 Noteikumi:
 - Lai atrastu auto, VIENMĒR izsauc rīku search_cars. Nekad neizdomā auto, cenas vai sludinājumus — runā tikai par to, ko atgrieza rīks.

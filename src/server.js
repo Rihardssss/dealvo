@@ -196,8 +196,10 @@ app.delete('/api/listings', requireAdmin, (req, res) => {
 });
 
 app.use((err, req, res, next) => {
+  // Nederīgs JSON vai pārāk liels pieprasījums ir klienta kļūda, nevis servera
+  if (err.status >= 400 && err.status < 500) return res.status(err.status).json({ errors: ['Nederīgs pieprasījums'] });
   console.error(err);
-  res.status(err.status || 500).json({ errors: ['Servera kļūda'] });
+  res.status(500).json({ errors: ['Servera kļūda'] });
 });
 
 const PORT = Number(process.env.PORT) || 3000;

@@ -58,7 +58,7 @@ function parseListPage(html) {
       make: normalizeMake(p.make?.displayValue),
       model: modelFrom(p),
       year: yearFrom(p.year?.value),
-      engine: p.engine_capacity?.value ? `${(Number(p.engine_capacity.value) / 1000).toFixed(1)} l` : null,
+      engine: p.engine_capacity?.value ? Math.round(Number(p.engine_capacity.value) / 100) / 10 : null, // 1598 cm3 → 1.6
       fuel: fuelLv(p.fuel_type?.value),
       body: null,
       gearbox: p.gearbox?.value === 'automatic' ? 'automāts' : p.gearbox?.value === 'manual' ? 'manuāla' : null,

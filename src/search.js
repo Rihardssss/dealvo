@@ -67,7 +67,8 @@ function searchListings(f = {}) {
   const since = f.sinceHours ? new Date(Date.now() - f.sinceHours * 3600_000).toISOString() : null;
   const items = scoredAll().items.filter((l) => matches(l, f, makeName, since));
   items.sort(SORTERS[f.sort || 'deal']);
-  return { total: items.length, items: items.slice(0, f.limit || 60).map(strip) };
+  const from = f.offset || 0;
+  return { total: items.length, items: items.slice(from, from + (f.limit || 60)).map(strip) };
 }
 
 /** Kopējā statistika (arī kešota). */

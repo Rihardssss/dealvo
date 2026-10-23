@@ -22,7 +22,7 @@ const SUSPICIOUS_SCORE = 70;
 
 // Bojāti auto, auto rezerves daļām, eksportam utt. — to cena nav salīdzināma ar normālu auto.
 // Tos neizmantojam tirgus cenas aprēķinā un neliekam "izdevīgāko" augšgalā.
-const DAMAGED_RE = /rezerves\s*daļ|uz\s*(?:daļām|detaļām)|(?<!nav\s)bojāts|pēc\s*avārijas|nav\s*tehnisk|nebrauc|nav\s*braucam|(?<!bez\s|nav\s)defekt|nevar\s*iedarbin|neiedarbin|jāremontē|bez\s*dokument|bez\s*te\w*\s*apskat|zerleg|\bteile\b|ersatzteil|motorschaden|getriebeschaden|unfallwagen|(?<!ohne\s|keine\s)mängel|bastler|for\s*parts|not\s*running|uszkodz|na\s*części|do\s*naprawy|po\s*wypadku|nie\s*odpala|niesprawn|bez\s*dokumentów|запчаст|на\s*разбор|битая/i;
+const DAMAGED_RE = /rezerves\s*daļ|uz\s*(?:daļām|detaļām)|(?<!nav\s)bojāts|pēc\s*avārijas|nav\s*tehnisk|nebrauc|nav\s*braucam|(?<!bez\s|nav\s)defekt|nevar\s*iedarbin|neiedarbin|jāremontē|bez\s*dokument|bez\s*te\w*\s*apskat|zerleg|\bteile\b|ersatzteil|motorschaden|getriebeschaden|unfallwagen|(?<!ohne\s|keine\s)mängel|bastler|for\s*parts|not\s*running|(?<!nie|bez\s)uszkodz|na\s*części|do\s*(?:naprawy|remontu)|po\s*wypadku|nie\s*odpala|niesprawn|bez\s*dokumentów|запчаст|на\s*разбор|битая/i;
 // Līzinga pārņemšana (otomoto: "odstąpię leasing", "cesja leasingu"): cena ir pārņemšanas maksa, nevis auto cena
 const LEASE_RE = /odstąpię\s*leasing|cesj\w*\s*leasing|przej\w*\s*leasing|odstępne|leasingübernahme|lease\s*takeover/i;
 const textOf = (l) => `${l.title || ''} ${l.details?.description || ''}`.slice(0, 600);
@@ -36,16 +36,20 @@ function median(nums) {
   return s.length % 2 ? s[mid] : (s[mid - 1] + s[mid]) / 2;
 }
 
-const { normalizeMake, normalizeModel } = require('./makes');
+const { normalizeMake, normalizeModel, isKnownModel } = require('./makes');
 
 const norm = (s) => String(s || '').trim().toLowerCase();
-// Atslēga, pēc kuras auto uzskata par "to pašu modeli" arī starp dažādiem avotiem
-const modelKey = (l) => `${norm(normalizeMake(l.make))}|${norm(normalizeModel(l.model, l.make))}`;
+// Atslēga, pēc kuras auto uzskata par "to pašu modeli" arī starp dažādiem avotiem.
+// Ja modelis nav zināms (tukšs vai ss.lv "Citi"), atslēgas nav — tādus auto nesalīdzinām.
+const modelKey = (l) => {
+  const model = normalizeModel(l.model, l.make);
+  return isKnownModel(model) ? `${norm(normalizeMake(l.make))}|${norm(model)}` : null;
+};
 
 function isComparable(a, b, level = LEVELS[0]) {
   if (a === b) return false;
   if (a.source === b.source && a.externalId === b.externalId) return false;
-  if (modelKey(a) !== modelKey(b)) return false;
+  if (!modelKey(a) || modelKey(a) !== modelKey(b)) return false;
   if (Math.abs(a.year - b.year) > level.years) return false;
   if (a.mileage != null && b.mileage != null && Math.abs(a.mileage - b.mileage) > level.km) return false;
   return true;
@@ -75,7 +79,7 @@ function scoreListings(listings) {
   const lease = listings.map((l, i) => !damaged[i] && isLease(l));
   const groups = new Map();
   listings.forEach((l, i) => {
-    if (damaged[i] || lease[i]) return;
+    if (damaged[i] || lease[i] || !keys[i]) return;
     if (!groups.has(keys[i])) groups.set(keys[i], []);
     groups.get(keys[i]).push(l);
   });
@@ -88,7 +92,7 @@ function scoreListings(listings) {
   return listings.map((l, i) => {
     if (damaged[i]) return { ...l, marketPrice: null, dealScore: null, dealLabel: null, comparables: 0, damaged: true };
     if (lease[i]) return { ...l, marketPrice: null, dealScore: null, dealLabel: null, comparables: 0, lease: true };
-    const group = groups.get(keys[i]) || [];
+    const group = (keys[i] && groups.get(keys[i])) || [];
     let comps = [];
     let level = LEVELS[0];
     for (const lv of LEVELS) {

@@ -48,9 +48,11 @@ async function getListing(source, externalId) {
 
   const { items: scored, byKey } = require('./search').scoredAll();
   const me = byKey.get(`${source}:${externalId}`) || scoreListings([item])[0];
+  // Līdzīgie: izdevīgākie vispirms, aizdomīgi lētie beigās (tāpat kā sarakstā)
+  const rank = (o) => (o.suspicious ? -Infinity : o.dealScore ?? -Infinity);
   const similar = scored
     .filter((o) => isComparable(me, o))
-    .sort((a, b) => (b.dealScore ?? -Infinity) - (a.dealScore ?? -Infinity))
+    .sort((a, b) => rank(b) - rank(a))
     .slice(0, 4)
     .map(({ makeNorm, modelNorm, dbId, details, detailsAt, ...o }) => o);
 

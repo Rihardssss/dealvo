@@ -11,7 +11,8 @@ Victoria projektu nedēļa, 2026.
 - Ja kāds atver marku ar veciem datiem, to uzreiz atjauno
 - Salīdzina katru auto ar līdzīgiem un parāda, par cik % tas ir lētāks vai dārgāks
 - Filtri: marka, modelis, gads, cena, nobraukums, degviela, virsbūve
-- Auto lapa ar bildēm, datiem un pārdevēju
+- Auto lapa ar bildēm, datiem un pārdevēju (arī otomoto.pl); katram auto ir sava saite
+- Filtri saglabājas adresē, tāpēc meklēšanu var pārlādēt vai nosūtīt citam; saraksts ielādē vēl ar „Rādīt vēl”
 - AI asistents: uzraksti, ko meklē, un tas atrod auto. Saprot arī turpinājumu („un kaut ko lētāku?”), salīdzina auto („salīdzini pirmos divus”) un novērtē konkrētu auto („vai šis ir labs pirkums?”). Atpazīst modeļus („golfs līdz 5000”), cenu diapazonu un pasaka tipisko cenu („cik maksā Octavia 2016?”)
 - Tulkošana: lapu var pārslēgt uz EN, RU, DE, LT, EE; sludinājuma aprakstu var iztulkot ar vienu pogu
 

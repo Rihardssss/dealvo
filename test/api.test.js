@@ -98,3 +98,19 @@ test('GET /api/listings?below=1 atgriež tikai auto zem tirgus', async () => {
   const bad = await fetch(`${base}/api/listings?below=abc`);
   assert.strictEqual(bad.status, 400);
 });
+
+test('lapošana: offset dod nākamos auto bez atkārtojumiem', async () => {
+  const first = await (await fetch(`${base}/api/listings?sort=price&limit=5`)).json();
+  const next = await (await fetch(`${base}/api/listings?sort=price&limit=5&offset=5`)).json();
+  assert.strictEqual(next.total, first.total);
+  const key = (l) => `${l.source}:${l.externalId}`;
+  assert.ok(next.items.every((l) => !first.items.some((f) => key(f) === key(l))));
+  assert.ok(next.items[0].price >= first.items.at(-1).price);
+  assert.strictEqual((await fetch(`${base}/api/listings?offset=-1`)).status, 400);
+});
+
+test('nederīgs JSON atgriež 400 "Nederīgs pieprasījums", nevis servera kļūdu', async () => {
+  const res = await fetch(base + '/api/assistant', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{bad json' });
+  assert.strictEqual(res.status, 400);
+  assert.deepStrictEqual(await res.json(), { errors: ['Nederīgs pieprasījums'] });
+});

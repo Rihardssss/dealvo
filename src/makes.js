@@ -46,16 +46,32 @@ function normalizeMake(raw) {
 const MODEL_FIX = {
   Toyota: { land: 'Land Cruiser', rav: 'RAV4', urban: 'Urban Cruiser', mr: 'MR2' },
   Hyundai: { santa: 'Santa Fe' },
-  Renault: { grand: 'Grand Scenic' },
   Kia: { pro_ceed: 'ProCeed' },
 };
 
+// "Citi" (ss.lv kategorija "citi modeļi") nav konkrēts modelis, tāpēc tādus auto savā starpā nesalīdzinām
+const UNKNOWN_MODEL_RE = /^(citi|cits|cita|other|others|inne|inny|andere)$/i;
+const isKnownModel = (modelNorm) => Boolean(modelNorm) && !UNKNOWN_MODEL_RE.test(modelNorm);
+
 function normalizeModel(raw, make) {
-  const words = String(raw || '').trim().split(/[\s/]+/);
+  const text = String(raw || '').trim();
+  const words = text.split(/[\s/]+/);
   const first = words[0] || '';
   if (/^[-–.]+$/.test(first)) return '';
-  const fix = MODEL_FIX[normalizeMake(make)]?.[first.toLowerCase()];
+  const makeName = normalizeMake(make);
+  const fix = MODEL_FIX[makeName]?.[first.toLowerCase()];
   if (fix) return fix;
+  // "Grand C-Max", "Grand Scenic", "New Beetle": pirmais vārds vien modeli nenosaka
+  if (/^(grand|new)$/i.test(first) && words[1]) {
+    return `${first[0].toUpperCase()}${first.slice(1).toLowerCase()} ${normalizeModel(words.slice(1).join(' '), make)}`;
+  }
+  // ss.lv "Mazda3", "Mazda6" → "3", "6" (kā citās vietnēs)
+  const mazda = makeName === 'Mazda' && text.match(/^mazda\s*(\d)\b/i);
+  if (mazda) return mazda[1];
+  // ss.lv un otomoto "XC 60", "V 70" → "XC60", "V70" (citādi visi XC modeļi saplūst vienā "XC")
+  if (makeName === 'Volvo' && /^(xc|ex|ec|es|v|s|c)$/i.test(first) && /^\d{2}$/.test(words[1] || '')) {
+    return first.toUpperCase() + words[1];
+  }
   // otomoto u.c.: "Seria 3" / "3 Series" / "3er" (BMW sērija bez konkrēta modeļa) → "3. sērija"
   const series = String(raw || '').match(/^(?:seria|series|serie|reihe)\s*(\d)\b|^(\d)\s*(?:series|er)\b|^(\d)\. sērija$/i);
   if (series && normalizeMake(make) === 'BMW') return `${series[1] || series[2] || series[3]}. sērija`;
@@ -129,4 +145,4 @@ function seriesOf(make, model) {
   return m ? `${m[1]}. sērija` : null;
 }
 
-module.exports = { MAKE_TABLE, MODEL_CATALOG, BODY_TYPES, normalizeMake, normalizeModel, bodyLv, bodyFor, seriesOf, SERIES_RE };
+module.exports = { MAKE_TABLE, MODEL_CATALOG, BODY_TYPES, normalizeMake, normalizeModel, isKnownModel, bodyLv, bodyFor, seriesOf, SERIES_RE };

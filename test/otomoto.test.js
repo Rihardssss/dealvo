@@ -22,6 +22,20 @@ test('otomoto: sludinājumi no __NEXT_DATA__, cena eiro', () => {
   assert.ok(a.image.startsWith('https://'));
   assert.strictEqual(b.price, 57000); // jau eiro
   assert.strictEqual(normalizeModel(c.model, c.make), '3. sērija');
+  assert.strictEqual(a.engine, 3); // 2979 cm3 → 3 l (skaitlis, nevis teksts "3.0 l")
+});
+
+test('modeļu nosaukumi: Volvo "XC 60", Mazda "Mazda3", "Grand C-Max", "New Beetle"', () => {
+  assert.strictEqual(normalizeModel('XC 60', 'Volvo'), 'XC60');
+  assert.strictEqual(normalizeModel('XC90', 'Volvo'), 'XC90');
+  assert.strictEqual(normalizeModel('V 70', 'Volvo'), 'V70');
+  assert.strictEqual(normalizeModel('Mazda3', 'Mazda'), '3');
+  assert.strictEqual(normalizeModel('Mazda 6', 'Mazda'), '6');
+  assert.strictEqual(normalizeModel('CX-5', 'Mazda'), 'CX-5');
+  assert.strictEqual(normalizeModel('Grand C-Max', 'Ford'), 'Grand C-Max');
+  assert.strictEqual(normalizeModel('Grand Scenic', 'Renault'), 'Grand Scenic');
+  assert.strictEqual(normalizeModel('New Beetle', 'Volkswagen'), 'New Beetle');
+  assert.strictEqual(normalizeModel('IS 250', 'Lexus'), 'IS'); // Lexus dzinējs nav modelis
 });
 
 test('modeļu nosaukumi no citām valodām', () => {

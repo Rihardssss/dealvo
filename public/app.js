@@ -102,12 +102,6 @@ function gauge(l) {
     </div>`;
 }
 
-// (vairs netiek lietots kartītēs — tās atver pilno skatu)
-const linkAttrs = (l) => {
-  const url = safeUrl(l.url);
-  return url ? `href="${esc(url)}" target="_blank" rel="noopener noreferrer"` : '';
-};
-
 // ---------- Kartītes ----------
 
 // Atslēga, ar kuru atver sludinājuma pilno skatu
@@ -305,35 +299,60 @@ function renderCar(l) {
       </section>` : ''}`;
 }
 
-async function openCar(key) {
+// Katram auto ir sava saite (#auto=avots|id), ko var nosūtīt citam. Telefona "atpakaļ" poga aizver skatu.
+let carSeq = 0;
+let carPushed = false;
+const carHash = (key) => `#auto=${encodeURIComponent(key)}`;
+
+async function openCar(key, { fromHistory = false } = {}) {
   const [source, id] = key.split('|');
   const modal = $('#carModal');
   const box = $('#carBox');
+  if (!fromHistory && location.hash !== carHash(key)) {
+    const url = location.pathname + location.search + carHash(key);
+    if (modal.hidden) { history.pushState(null, '', url); carPushed = true; } else history.replaceState(null, '', url);
+  }
   if (modal.hidden) lastFocus = document.activeElement;
   modal.hidden = false;
   document.body.style.overflow = 'hidden';
   box.innerHTML = `<div class="p-10 text-center text-sub">Ielādē sludinājumu…</div>`;
   modal.scrollTop = 0;
+  const seq = ++carSeq; // ja pa to laiku atvērts cits auto, veco atbildi neievietojam
   try {
     const l = await api(`/api/listing?source=${encodeURIComponent(source)}&id=${encodeURIComponent(id)}`);
+    if (seq !== carSeq || modal.hidden) return;
     box.innerHTML = renderCar(l);
     showPhoto(0);
     $('[data-close-car]', box).focus();
   } catch (err) {
+    if (seq !== carSeq || modal.hidden) return;
     box.innerHTML = `<div class="flex justify-between gap-4 p-6"><p class="text-above">${esc(err.message)}</p><button type="button" data-close-car class="text-sub underline">Aizvērt</button></div>`;
   }
 }
 
-function closeCar() {
+function closeCar(fromHistory = false) {
   $('#carModal').hidden = true;
   document.body.style.overflow = '';
   lastFocus?.focus?.();
+  if (!fromHistory && location.hash.startsWith('#auto=')) {
+    if (carPushed) history.back();
+    else history.replaceState(null, '', location.pathname + location.search);
+  }
+  carPushed = false;
 }
+
+window.addEventListener('popstate', () => {
+  const m = location.hash.match(/^#auto=(.+)$/);
+  if (m) openCar(decodeURIComponent(m[1]), { fromHistory: true });
+  else if (!$('#carModal').hidden) closeCar(true);
+});
 
 document.addEventListener('click', (e) => {
   const open = e.target.closest('[data-open]');
   if (open) { e.preventDefault(); openCar(open.dataset.open); return; }
   if (e.target.closest('[data-close-car]') || e.target.id === 'carModal') { closeCar(); return; }
+  const more = e.target.closest('[data-more]');
+  if (more) { more.disabled = true; more.textContent = 'Ielādē…'; loadListings({ append: true }); return; }
   const step = e.target.closest('[data-photo]');
   if (step) { showPhoto(gallery.i + Number(step.dataset.photo)); return; }
   const thumb = e.target.closest('[data-thumb]');
@@ -353,13 +372,61 @@ function filters() {
   for (const form of ['#searchForm', '#sideForm']) {
     for (const [k, v] of new FormData($(form))) if (v !== '') params.set(k, v);
   }
+  // Vietņu izvēle parādās tikai pēc /api/stats ielādes; līdz tam vietni ņemam no adreses
+  const urlSource = new URLSearchParams(location.search).get('source');
+  if (!$('#sourceRadios').children.length && urlSource) params.set('source', urlSource);
   return params;
 }
 
+// Filtri adresē (?make=bmw&maxPrice=5000), lai meklēšanu var pārlādēt un nosūtīt citam
+const DEFAULT_SORT = 'newest';
+function syncUrl(params) {
+  const p = new URLSearchParams(params);
+  if (p.get('sort') === DEFAULT_SORT) p.delete('sort');
+  const q = p.toString();
+  history.replaceState(null, '', `${location.pathname}${q ? `?${q}` : ''}${location.hash}`);
+}
+
+async function restoreFromUrl() {
+  const p = new URLSearchParams(location.search);
+  const has = (el, v) => [...el.options].some((o) => o.value === v);
+  const num = (v) => (/^\d{1,7}$/.test(v || '') ? v : '');
+  if (has($('#filterMake'), p.get('make') || '')) setSelect($('#filterMake'), p.get('make'));
+  await loadModels($('#filterMake').value);
+  if (has($('#filterModel'), p.get('model') || '')) setSelect($('#filterModel'), p.get('model'));
+  for (const id of ['minYear', 'maxYear', 'minPrice', 'maxPrice', 'maxMileage']) setSelect($('#' + id), num(p.get(id)));
+  if (has($('#fuel'), p.get('fuel') || '')) $('#fuel').value = p.get('fuel');
+  setBody(p.get('body') || '');
+  const sort = $('#sideForm').elements.sort;
+  sort.value = has(sort, p.get('sort') || '') ? p.get('sort') : DEFAULT_SORT;
+  $('#belowOnly').checked = p.get('below') === '1';
+}
+
+const PAGE = 60;
 let debounce;
-async function loadListings() {
+let listSeq = 0;
+let shown = 0;
+// { append: true } — poga "Rādīt vēl" pievieno nākamos auto esošajiem
+async function loadListings({ append = false } = {}) {
+  const seq = ++listSeq; // ja filtrs pa to laiku mainīts, novecojušo atbildi neievietojam
+  const params = filters();
+  if (append) params.set('offset', shown);
+  else syncUrl(params);
   try {
-    const data = await api('/api/listings?' + filters());
+    const data = await api('/api/listings?' + params);
+    if (seq !== listSeq) return;
+    const moreBtn = (left) => (left > 0 ? `
+      <li data-more-li class="pt-2 text-center">
+        <button type="button" data-more class="btn-line px-6">Rādīt vēl ${fmt.format(Math.min(PAGE, left))} auto</button>
+        <p class="mt-2 text-sm text-faint">Parādīti ${fmt.format(shown)} no ${fmt.format(data.total)}</p>
+      </li>` : '');
+    if (append) {
+      $('[data-more-li]')?.remove();
+      shown += data.items.length;
+      $('#list').insertAdjacentHTML('beforeend', data.items.map(listCard).join('') + moreBtn(data.total - shown));
+      return;
+    }
+    shown = data.items.length;
     $('#count').textContent = data.total ? `${fmt.format(data.total)} auto${$('#belowOnly').checked ? ' zem tirgus' : ''}` : 'Nekas netika atrasts';
     $('#showBtn').textContent = `Rādīt ${fmt.format(data.total)} auto`;
     const makeName = $('#filterMake').selectedOptions[0]?.textContent || '';
@@ -369,9 +436,16 @@ async function loadListings() {
           Meklējam jaunākos ${esc(makeName)} sludinājumus vietnēs. Saraksts atjaunosies pats.</li>`
       : '') + (data.items.length
       ? data.items.map(listCard).join('')
-      : data.refreshing ? '' : `<li class="rounded-xl border border-hair bg-paper px-6 py-14 text-center text-sub">Neviens auto neatbilst filtriem. Mēģini palielināt cenu vai noņemt modeli.</li>`);
+      : data.refreshing ? '' : `<li class="rounded-xl border border-hair bg-paper px-6 py-14 text-center text-sub">Neviens auto neatbilst filtriem. Mēģini palielināt cenu vai noņemt modeli.</li>`)
+      + moreBtn(data.total - shown);
     if (data.refreshing) waitForScan();
   } catch (e) {
+    if (seq !== listSeq) return;
+    if (append) {
+      const btn = $('[data-more]');
+      if (btn) { btn.disabled = false; btn.textContent = 'Neizdevās ielādēt, mēģini vēlreiz'; }
+      return;
+    }
     $('#count').textContent = 'Filtrs nav derīgs';
     $('#list').innerHTML = `<li class="rounded-xl border border-hair bg-paper px-6 py-10 text-above">${esc(e.message)}</li>`;
   }
@@ -429,7 +503,7 @@ async function loadStats() {
   $('#liveText').textContent = names.join(' · ');
   if (names.length) $('#heroSources').textContent = `Sludinājumi no ${names.length > 1 ? `${names.slice(0, -1).join(', ')} un ${names.at(-1)}` : names[0]}`;
   // Vietņu filtrs sānjoslā — rādām tikai tās, kurām ir dati
-  const current = new FormData($('#sideForm')).get('source') || '';
+  const current = new FormData($('#sideForm')).get('source') ?? new URLSearchParams(location.search).get('source') ?? '';
   $('#sourceRadios').innerHTML = [['', 'Visas', s.total], ...Object.entries(s.bySource).map(([k, n]) => [k, sourceLabel(k), n])]
     .map(([val, label, n]) => `
       <label class="flex cursor-pointer items-center justify-between gap-2">
@@ -911,7 +985,10 @@ document.addEventListener('click', async (e) => {
     $('#scrapeSources').innerHTML = '<legend class="field-label">Vietnes</legend>' + cfg.sources.map((s) => `
       <label class="flex items-center gap-2"><input type="checkbox" name="sources" value="${esc(s.key)}" checked class="accent-navy">
         ${esc(s.label)} <span class="text-faint">${esc(s.country)}</span></label>`).join('');
+    await restoreFromUrl();
     await refresh();
+    const car = location.hash.match(/^#auto=(.+)$/);
+    if (car) openCar(decodeURIComponent(car[1]), { fromHistory: true });
     let saved = 'lv';
     try { saved = localStorage.getItem('dealvo-lang') || 'lv'; } catch { /* */ }
     if (saved !== 'lv' && [...$('#langSelect').options].some((o) => o.value === saved)) setLang(saved);

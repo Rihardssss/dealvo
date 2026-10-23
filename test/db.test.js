@@ -47,3 +47,14 @@ test('SQLite: dzēšot sludinājumu, dzēšas arī tā cenu vēsture', () => {
   db.clear();
   assert.strictEqual(db.all().length, 0);
 });
+
+test('SQLite: dzinējs vienmēr skaitlis, nobraukums tūkstošos tiek pārrēķināts', () => {
+  db.upsert([
+    { source: 'otomoto', externalId: 'e1', make: 'BMW', model: 'X3', year: 2007, price: 5000, engine: '2.0 l', mileage: 302 },
+    { source: 'otomoto', externalId: 'e2', make: 'BMW', model: 'X3', year: new Date().getFullYear(), price: 50000, engine: 3, mileage: 500 },
+  ]);
+  const old = db.find('otomoto', 'e1');
+  assert.strictEqual(old.engine, 2);
+  assert.strictEqual(old.mileage, 302000); // 2007. gada auto ar 302 km — pārdevējs rakstīja tūkstošos
+  assert.strictEqual(db.find('otomoto', 'e2').mileage, 500); // jauns auto ar 500 km ir ticams
+});
