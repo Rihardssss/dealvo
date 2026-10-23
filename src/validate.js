@@ -8,6 +8,19 @@ const MAKES = Object.fromEntries(Object.entries(MAKE_TABLE).map(([k, v]) => [k, 
 const SOURCE_KEYS = ['sslv', 'autoscout24', 'mobilede', 'otomoto'];
 
 const CURRENT_YEAR = new Date().getFullYear();
+const FUELS = ['dīzelis', 'benzīns', 'hibrīds', 'elektro', 'gāze'];
+const SORTS = ['deal', 'price', 'year', 'mileage', 'newest'];
+// Skaitliskie filtri un to robežas (tos izmanto arī API dokumentācija, src/openapi.js)
+const LISTING_NUMERIC = [
+  ['minPrice', 1, 10_000_000],
+  ['minYear', 1950, CURRENT_YEAR + 1],
+  ['maxYear', 1950, CURRENT_YEAR + 1],
+  ['maxPrice', 1, 10_000_000],
+  ['maxMileage', 0, 2_000_000],
+  ['limit', 1, 500],
+  ['offset', 0, 100_000],
+  ['sinceHours', 1, 24 * 30],
+];
 
 function toInt(value, { min, max, field }) {
   if (value === undefined || value === null || value === '') return { ok: true, value: undefined };
@@ -61,8 +74,7 @@ function validateListingQuery(q = {}) {
     else out.source = source;
   }
   if (q.fuel) {
-    const fuels = ['dīzelis', 'benzīns', 'hibrīds', 'elektro', 'gāze'];
-    if (!fuels.includes(q.fuel)) errors.push(`fuel: atļauts ${fuels.join(', ')}`);
+    if (!FUELS.includes(q.fuel)) errors.push(`fuel: atļauts ${FUELS.join(', ')}`);
     else out.fuel = q.fuel;
   }
 
@@ -71,17 +83,7 @@ function validateListingQuery(q = {}) {
     else out.body = q.body;
   }
 
-  const numeric = [
-    ['minPrice', 1, 10_000_000],
-    ['minYear', 1950, CURRENT_YEAR + 1],
-    ['maxYear', 1950, CURRENT_YEAR + 1],
-    ['maxPrice', 1, 10_000_000],
-    ['maxMileage', 0, 2_000_000],
-    ['limit', 1, 500],
-    ['offset', 0, 100_000],
-    ['sinceHours', 1, 24 * 30],
-  ];
-  for (const [field, min, max] of numeric) {
+  for (const [field, min, max] of LISTING_NUMERIC) {
     const r = toInt(q[field], { min, max, field });
     if (!r.ok) errors.push(r.error);
     else if (r.value !== undefined) out[field] = r.value;
@@ -100,13 +102,12 @@ function validateListingQuery(q = {}) {
     else out.below = true;
   }
 
-  const sorts = ['deal', 'price', 'year', 'mileage', 'newest'];
   if (q.sort) {
-    if (!sorts.includes(q.sort)) errors.push(`sort: atļauts ${sorts.join(', ')}`);
+    if (!SORTS.includes(q.sort)) errors.push(`sort: atļauts ${SORTS.join(', ')}`);
     else out.sort = q.sort;
   }
 
   return errors.length ? { ok: false, errors } : { ok: true, value: out };
 }
 
-module.exports = { MAKES, SOURCE_KEYS, validateScrapeRequest, validateListingQuery };
+module.exports = { MAKES, SOURCE_KEYS, FUELS, SORTS, LISTING_NUMERIC, validateScrapeRequest, validateListingQuery };

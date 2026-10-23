@@ -28,6 +28,8 @@ npm start
 
 Atver http://localhost:3000
 
+API dokumentācija (Swagger UI), kurā var izmēģināt katru pieprasījumu: http://localhost:3000/api-docs
+
 `npm run seed` ielādē testa datus. Testi: `npm test`
 
 ## Tehnoloģijas
@@ -37,6 +39,7 @@ Atver http://localhost:3000
 - Cheerio (lapu nolasīšanai)
 - Tailwind CSS
 - Claude API (AI asistentam)
+- Swagger UI (API dokumentācija, apraksts failā `src/openapi.js`)
 - Cloudflare Tunnel (hostingam)
 
 ## Kā aprēķina cenu

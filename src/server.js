@@ -1,5 +1,7 @@
 const express = require('express');
 const path = require('path');
+const swaggerUi = require('swagger-ui-express');
+const openapi = require('./openapi');
 const db = require('./db');
 const demo = require('./scrapers/demo');
 const { SOURCES, scrapeMake } = require('./scrapers');
@@ -79,6 +81,16 @@ app.use('/api', (req, res, next) => {
   if (h.n > 120) return res.status(429).json({ errors: ['Pārāk daudz pieprasījumu, pagaidi minūti'] });
   next();
 });
+
+// API dokumentācija, kurā var izmēģināt pieprasījumus: /api-docs (apraksts: /api/openapi.json, src/openapi.js).
+// swaggerUrl ir fiksēts, tāpēc ar ?url=... saitē nevar ielādēt svešu aprakstu.
+app.get('/api/openapi.json', (req, res) => res.json(openapi));
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(null, {
+  swaggerUrl: '/api/openapi.json',
+  customSiteTitle: 'Dealvo API',
+  customCss: '.swagger-ui .topbar { display: none }',
+  swaggerOptions: { tryItOutEnabled: true, displayRequestDuration: true, persistAuthorization: true },
+}));
 
 app.get('/api/config', (req, res) => res.json({
   adminRequired: Boolean(ADMIN_TOKEN),
