@@ -27,6 +27,7 @@ npm start
 ```
 
 Atver http://localhost:3000
+https://dealvo.riciboy.eu
 
 API dokumentācija (Swagger UI), kurā var izmēģināt katru pieprasījumu: http://localhost:3000/api-docs
 
