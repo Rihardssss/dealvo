@@ -70,7 +70,16 @@ const PURPOSES = [
 ];
 
 const HELP_RE = /^(sveiki|sveiks|čau|cau|labdien|hi|hello|hey|palīdz|palidz|ko (tu )?(māki|proti|vari)|help)\b/;
-const PRICE_Q_RE = /cik (maksā|maksa|izmaksā|vidēji|parasti)|vidēj(a|ā) cena|tirgus cena|kāda ir cena|how much|average price/;
+// Rasistiski un homofobiski apvainojumi (LV/EN/RU, arī ar cipariem burtu vietā). Uz tādiem jautājumiem neatbildam.
+const ABUSE_RE = new RegExp([
+  'n[i1!ī]+g+(?:[e3]r|a|ah|uh)(?!i[jy]?a)', 'n[eē][gģ]er', 'ниг+ер', 'faggot', 'p[iī]d[ao]r', 'пид[оа]р', 'педик',
+  'ž[iī]d(?:s|i|u|us|iem|am|a)?(?!\\p{L})', 'жид(?:ы|ов|ам|у|а)?(?!\\p{L})', 'kikes?(?!\\p{L})', 'chinks?(?!\\p{L})',
+].map((p) => `(?<!\\p{L})${p}`).join('|'), 'iu');
+// Vārdi, pēc kuriem saprotam, ka jautājums ir par auto, pat ja filtru tajā nav ("parādi izdevīgākos auto")
+const CAR_RE = /auto|mašīn|masin|mašin|spēkrat|\bcars?\b|vehicle|izdevīg|izdevig|piedāvāj|piedavaj|sludināj|sludinaj|tirg|deal|lēt|dārg|pirk|meklē|mekle/;
+// "7 cilvēkiem", "pārvadāt 8 pasažierus"
+const SEATS_RE = /(\d{1,3})\s*(?:cilvēk|cilvek|pasažier|pasazier|person|people|passeng|sēdviet|sedviet|vietīg|vietig)/;
+const PRICE_Q_RE =/cik (maksā|maksa|izmaksā|vidēji|parasti)|vidēj(a|ā) cena|tirgus cena|kāda ir cena|how much|average price/;
 
 function num(text) {
   const t = String(text).toLowerCase().replace(/\s/g, '').replace(',', '.');
@@ -136,6 +145,8 @@ function parseQuestion(q) {
     [/kupej|coupe/, 'kupeja'], [/kabriol|cabrio/, 'kabriolets'],
   ];
   for (const [re, body] of bodies) if (re.test(t)) { f.body = body; break; }
+  const seats = t.match(SEATS_RE);
+  if (!f.body && seats && Number(seats[1]) >= 6) f.body = 'minivens';
   if (!f.body && !f.model) {
     for (const [re, body] of PURPOSES) if (re.test(t)) { f.body = body; break; }
   }
@@ -167,27 +178,29 @@ function describeFilters(f) {
 }
 
 function searchAnswer(filters, prefix = 'Atradu', note = '') {
-  const { total, items } = searchListings({ ...filters, limit: 6 });
+  // Aizdomīgi lētus (>70% zem tirgus) neiesakām
+  const { total, items } = searchListings({ ...filters, limit: 6, noSuspicious: true });
   const what = describeFilters(filters);
+  const extra = note ? ` ${note[0].toUpperCase()}${note.slice(1)}.` : '';
   if (!total) {
     // Pamēģinām mīkstāk: bez virsbūves un nobraukuma, ar 20% lielāku budžetu
     const soft = { ...filters };
     delete soft.body; delete soft.maxMileage;
     if (soft.maxPrice) soft.maxPrice = Math.round(soft.maxPrice * 1.2 / 500) * 500;
-    const alt = JSON.stringify(soft) !== JSON.stringify(filters) ? searchListings({ ...soft, limit: 6 }) : { total: 0, items: [] };
+    const alt = JSON.stringify(soft) !== JSON.stringify(filters) ? searchListings({ ...soft, limit: 6, noSuspicious: true }) : { total: 0, items: [] };
     if (alt.total) {
       return {
         intent: 'search', filters: soft, items: alt.items,
-        answer: `Ar šiem nosacījumiem${what ? ` (${what})` : ''} neatradu neko. Ja nedaudz atvieglo (${describeFilters(soft) || 'bez virsbūves un nobraukuma'}), ir ${fmt.format(alt.total)} auto. Lūk, labākie no tiem.`,
+        answer: `Ar šiem nosacījumiem${what ? ` (${what})` : ''} neatradu neko.${extra} Ja nedaudz atvieglo (${describeFilters(soft) || 'bez virsbūves un nobraukuma'}), ir ${fmt.format(alt.total)} auto. Lūk, labākie no tiem.`,
       };
     }
     return {
       intent: 'search', filters, items: [],
-      answer: `Neatradu nevienu auto${what ? ` (${what})` : ''}. Pamēģini palielināt budžetu vai noņemt kādu nosacījumu.`,
+      answer: `Neatradu nevienu auto${what ? ` (${what})` : ''}.${extra} Pamēģini palielināt budžetu vai noņemt kādu nosacījumu.`,
     };
   }
   const best = items[0];
-  const lines = [`${prefix} ${fmt.format(total)} auto${what ? ` (${what})` : ''}.${note ? ` ${note[0].toUpperCase()}${note.slice(1)}.` : ''}`];
+  const lines = [`${prefix} ${fmt.format(total)} auto${what ? ` (${what})` : ''}.${extra}`];
   if (best.dealScore != null && best.dealScore > 0) {
     lines.push(
       `Izdevīgākais ir ${best.make} ${best.model}, ${best.year}, par ${eur(best.price)}. ` +
@@ -209,7 +222,7 @@ function priceAnswer(filters) {
   if (total < 3) return { intent: 'price', filters, items: [], answer: `Par ${what} man ir par maz datu (${total} sludinājumi), lai pateiktu tipisku cenu.` };
   const prices = items.map((l) => l.price).sort((a, b) => a - b);
   const q = (p) => prices[Math.min(prices.length - 1, Math.floor(p * prices.length))];
-  const top = searchListings({ ...filters, sort: 'deal', limit: 3 }).items;
+  const top = searchListings({ ...filters, sort: 'deal', limit: 3, noSuspicious: true }).items;
   return {
     intent: 'price', filters, items: top,
     answer: `${what[0].toUpperCase()}${what.slice(1)}: ${fmt.format(total)} sludinājumi. Tipiskā cena ir ap ${eur(q(0.5))}, ` +
@@ -221,6 +234,8 @@ function priceAnswer(filters) {
 const HELP_TEXT = 'Sveiki! Es meklēju lietotus auto Dealvo datos un salīdzinu tos ar tirgu. Vari rakstīt, piemēram:\n' +
   '• „dīzeļa universālis līdz 7000 € pēc 2013”\n• „golfs līdz 5000”\n• „cik maksā Octavia 2016?”\n' +
   '• „auto ģimenei no 4000 līdz 8000 eur”\nPēc tam vari prasīt „un lētāku?”, „salīdzini pirmos divus” vai „vai pirmais ir labs pirkums?”.';
+const OFF_TOPIC_TEXT = 'Es palīdzu tikai atrast lietotus auto Dealvo datos. Pastāsti, kādu auto meklē: marku, budžetu, gadu vai kam tas vajadzīgs, piemēram, „golfs līdz 5000” vai „auto ģimenei līdz 8000 €”.';
+const ABUSE_TEXT = 'Uz šādiem jautājumiem neatbildu. Ja meklē auto, pastāsti, kādu: marku, budžetu, gadu vai kam tas vajadzīgs.';
 
 // ---------- Jautājuma veida noteikšana ----------
 
@@ -300,6 +315,8 @@ function evaluate(l) {
 
   if (l.dealScore == null) {
     minus.push('līdzīgu auto ir par maz, tāpēc nevaru droši pateikt, vai cena ir laba');
+  } else if (l.suspicious) {
+    minus.push(`cena ir par ${fmt.format(l.dealScore)}% zemāka nekā līdzīgiem auto (tipiski ${eur(l.marketPrice)}), un tik liela starpība parasti nozīmē kļūdu sludinājumā vai slēptu problēmu`);
   } else if (l.dealScore >= 20) {
     plus.push(`cena ir par ${fmt.format(l.dealScore)}% zemāka nekā līdzīgiem auto (tipiski ${eur(l.marketPrice)})`);
   } else if (l.dealScore >= 10) {
@@ -321,7 +338,7 @@ function evaluate(l) {
   if (priceDrop) plus.push(`cena jau samazināta (bija ${eur(priceDrop)})`);
   if (l.seller?.type === 'dīleris') plus.push('pārdod dīleris, var jautāt par garantiju');
 
-  const score = plus.length - minus.length + (l.dealScore >= 20 ? 1 : 0);
+  const score = plus.length - minus.length + (l.dealScore >= 20 && !l.suspicious ? 1 : 0);
   const verdict = l.dealScore != null && l.dealScore > 35
     ? 'Cena ir aizdomīgi zema, tāpēc pirms pirkšanas obligāti pārbaudi auto vēsturi (avārijas, nobraukums, dokumenti).'
     : score >= 2 ? 'Kopumā izskatās pēc laba piedāvājuma, bet pirms pirkšanas pārbaudi auto tehniskajā stacijā.'
@@ -340,7 +357,7 @@ function evaluate(l) {
 function compare(a, b) {
   const fa = factsAbout(a);
   const fb = factsAbout(b);
-  const points = (l, f) => (l.dealScore ?? 0) + (l.year - 2000) - (f.kmPerYear ?? 25000) / 2500;
+  const points = (l, f) => (l.suspicious ? 0 : l.dealScore ?? 0) + (l.year - 2000) - (f.kmPerYear ?? 25000) / 2500;
   const pa = points(a, fa);
   const pb = points(b, fb);
   const label = (l) => `${l.make} ${l.model} (${l.year}, ${eur(l.price)})`;
@@ -350,7 +367,8 @@ function compare(a, b) {
   const lines = [`Salīdzinu: ${label(a)} un ${label(b)}.`];
 
   const diff = (better, worse, what) => lines.push(`${better[0].toUpperCase()}${better.slice(1)} ${what}.`);
-  if (a.dealScore != null && b.dealScore != null && Math.abs(a.dealScore - b.dealScore) >= 5) {
+  for (const l of [a, b]) if (l.suspicious) lines.push(`${nm(l)[0].toUpperCase()}${nm(l).slice(1)} ir aizdomīgi lēts (${fmt.format(l.dealScore)}% zem tirgus), tāpēc vispirms pārbaudi, vai sludinājumā nav kļūdas.`);
+  if (a.dealScore != null && b.dealScore != null && !a.suspicious && !b.suspicious && Math.abs(a.dealScore - b.dealScore) >= 5) {
     const [x, y] = a.dealScore > b.dealScore ? [a, b] : [b, a];
     diff(nm(x), y, `ir izdevīgāks pret tirgu (${fmt.format(x.dealScore)}% pret ${fmt.format(y.dealScore)}%)`);
   }
@@ -409,8 +427,18 @@ function offlineAnswer(question, ctx = {}) {
     return { mode: 'offline', ...searchAnswer(filters, 'Labi, tagad atradu'), intent };
   }
   const filters = parseQuestion(question);
+  // Nekas no jautājuma neattiecas uz auto ("tu esi robots?") → nerādām nejaušu auto sarakstu
+  const hasFilters = Object.keys(filters).some((k) => k !== 'sort') || filters.sort !== 'deal';
+  if (!hasFilters && !CAR_RE.test(t)) {
+    return { mode: 'offline', intent: 'off-topic', filters: null, items: [], answer: OFF_TOPIC_TEXT };
+  }
+  const seats = Number(t.match(SEATS_RE)?.[1]);
   const purpose = !filters.model && PURPOSES.find(([re, body]) => re.test(t) && filters.body === body);
-  return { mode: 'offline', ...searchAnswer(filters, 'Atradu', purpose ? purpose[2] : '') };
+  const note = seats > 9 && filters.body === 'minivens'
+    ? `vieglajā auto ir ne vairāk kā 9 sēdvietas, tāpēc ${seats} cilvēkiem vajag autobusu. Dealvo ir tikai vieglie auto, un ietilpīgākie no tiem ir minivens`
+    : seats >= 6 && filters.body === 'minivens' ? `${seats} cilvēkiem der minivens`
+      : purpose ? purpose[2] : '';
+  return { mode: 'offline', ...searchAnswer(filters, 'Atradu', note) };
 }
 
 // ---------------------------------------------------------------------------
@@ -426,7 +454,9 @@ Noteikumi:
 - Ja rezultātu nav, pamēģini vēlreiz ar mīkstākiem filtriem (piem. lielāks budžets), ne vairāk kā 2 reizes.
 - Atbildi tajā valodā, kurā lietotājs jautā (parasti latviski), īsi (2–5 teikumi), draudzīgi. Ja iesaki vairākus auto, uzskaiti tos numurētā sarakstā. Ieteic 1–3 konkrētus auto ar cenu, gadu un to, cik % tie ir lētāki par tirgu.
 - Ja auto ir ļoti liels nobraukums vai aizdomīgi zema cena (vairāk kā 35% zem tirgus), iesaki to pārbaudīt pirms pirkšanas.
-- Ja jautājums nav par auto meklēšanu, pieklājīgi pasaki, ka palīdzi tikai ar auto meklēšanu Dealvo datos.
+- search_cars aizdomīgi lētus auto (vairāk nekā 70% zem tirgus) neatgriež. Ja get_cars rezultātā aizdomigs=true, nesauc to par izdevīgu pirkumu: paskaidro, ka tik liela starpība parasti nozīmē kļūdu sludinājumā vai slēptu problēmu.
+- Ja jautājums nav par auto meklēšanu, pieklājīgi pasaki, ka palīdzi tikai ar auto meklēšanu Dealvo datos, un neizsauc rīkus.
+- Ja jautājumā ir aizskaroši, rasistiski vai naidīgi vārdi, neatkārto tos, nemeklē auto un īsi pasaki, ka uz tādiem jautājumiem neatbildi.
 - Tu neesi finanšu konsultants; nesoli, ka darījums noteikti ir labs.`;
 
 const TOOLS = [{
@@ -469,6 +499,7 @@ const compact = (l) => ({
   degviela: l.fuel,
   virsbuve: l.body,
   avots: l.source,
+  ...(l.suspicious ? { aizdomigs: true } : {}),
 });
 
 const ID_RE = /^[\p{L}\p{N}.\-]{2,30}:[\w\-]{1,64}$/u;
@@ -492,7 +523,7 @@ function runTool(input) {
     Object.entries(input || {}).filter(([, val]) => val !== null && val !== undefined).map(([k, val]) => [k, String(val)])
   ));
   if (!v.ok) return { filters: null, result: { kļūdas: v.errors } };
-  const { total, items } = searchListings({ ...v.value, limit: 8 });
+  const { total, items } = searchListings({ ...v.value, limit: 8, noSuspicious: true });
   return { filters: v.value, items, result: { kopā: total, rezultāti: items.map(compact) } };
 }
 
@@ -591,6 +622,8 @@ async function ask(question, rawContext, rawHistory) {
   const q = question.trim();
   const ctx = cleanContext(rawContext);
   const history = cleanHistory(rawHistory);
+  // Pirms Claude: aizskarošus jautājumus neapstrādājam vispār (arī lai par tiem nemaksātu API)
+  if (ABUSE_RE.test(q)) return { mode: 'offline', intent: 'refused', filters: null, items: [], answer: ABUSE_TEXT };
   if (process.env.ANTHROPIC_API_KEY) {
     try {
       return await claudeAnswer(q, ctx, history);

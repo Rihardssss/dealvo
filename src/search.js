@@ -6,8 +6,10 @@ const { scoreListings } = require('./deals');
 const { MAKES } = require('./validate');
 const { MODEL_CATALOG, seriesOf } = require('./makes');
 
+// Aizdomīgi lēti auto (>70% zem tirgus) "izdevīgāko" kārtojumā ir beigās, nevis augšā
+const dealRank = (l) => (l.suspicious ? -Infinity : l.dealScore ?? -Infinity);
 const SORTERS = {
-  deal: (a, b) => (b.dealScore ?? -Infinity) - (a.dealScore ?? -Infinity),
+  deal: (a, b) => dealRank(b) - dealRank(a),
   price: (a, b) => a.price - b.price,
   year: (a, b) => b.year - a.year,
   mileage: (a, b) => (a.mileage ?? Infinity) - (b.mileage ?? Infinity),
@@ -48,7 +50,8 @@ function matches(l, f, makeName, since) {
   if (f.maxPrice && !(l.price <= f.maxPrice)) return false;
   if (f.maxMileage && !(l.mileage != null && l.mileage <= f.maxMileage)) return false;
   if (since && !(String(l.firstSeen) >= since)) return false;
-  if (f.below && !(l.dealScore != null && l.dealScore >= 10)) return false;
+  if (f.below && !(l.dealScore != null && l.dealScore >= 10 && !l.suspicious)) return false;
+  if (f.noSuspicious && l.suspicious) return false;
   return true;
 }
 
@@ -56,7 +59,7 @@ const strip = ({ details, detailsAt, dbId, makeNorm, modelNorm, ...l }) => l;
 
 /**
  * Meklē sludinājumus pēc filtriem (no keša, ar jau aprēķinātu tirgus cenu).
- * @param {object} f validēti filtri (skat. validateListingQuery)
+ * @param {object} f validēti filtri (skat. validateListingQuery); asistents papildus padod noSuspicious
  * @returns {{total: number, items: object[]}}
  */
 function searchListings(f = {}) {

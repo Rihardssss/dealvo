@@ -47,8 +47,10 @@ function photo(l, cls = '') {
 
 function dealBadge(l, size = 'sm') {
   if (l.damaged) return `<span class="inline-block rounded ${size === 'lg' ? 'px-2.5 py-1 text-sm' : 'px-2 py-0.5 text-xs'} bg-above/10 font-medium text-above">bojāts / daļām</span>`;
+  if (l.lease) return `<span class="inline-block rounded ${size === 'lg' ? 'px-2.5 py-1 text-sm' : 'px-2 py-0.5 text-xs'} bg-wash font-medium text-sub">līzinga pārņemšana</span>`;
   if (l.dealScore == null) return '';
   const big = size === 'lg' ? 'px-2.5 py-1 text-sm' : 'px-2 py-0.5 text-xs';
+  if (l.suspicious) return `<span class="inline-block rounded ${big} bg-above/10 font-semibold text-above">aizdomīgi lēts</span>`;
   if (l.dealScore >= 10) return `<span class="inline-block rounded ${big} bg-below-soft font-semibold text-below">${pct(l.dealScore)}% zem tirgus</span>`;
   if (l.dealScore <= -10) return `<span class="inline-block rounded ${big} bg-above/10 font-semibold text-above">${pct(l.dealScore)}% virs tirgus</span>`;
   return `<span class="inline-block rounded ${big} bg-wash font-medium text-sub">tirgus cena</span>`;
@@ -68,6 +70,7 @@ function facts(l) {
 // līdzīgajam auto (zaļā daļa = lētāk par tirgu, oranžā = dārgāk), aplis = šis auto.
 function gauge(l) {
   if (l.damaged) return `<p class="text-xs text-above">Bojāts vai rezerves daļām, tāpēc ar tirgu nesalīdzinām</p>`;
+  if (l.lease) return `<p class="text-xs text-faint">Līzinga pārņemšana: cena nav auto pilnā cena, tāpēc ar tirgu nesalīdzinām</p>`;
   if (l.marketPrice == null || l.rangeMax === l.rangeMin) {
     return `<p class="text-xs text-faint">Par maz līdzīgu auto, lai salīdzinātu ar tirgu</p>`;
   }
@@ -75,7 +78,7 @@ function gauge(l) {
   const diff = l.marketPrice - l.price;
   const m = pos(l.marketPrice);
   const p = pos(l.price);
-  const ring = l.dealScore >= 10 ? 'border-below' : l.dealScore <= -10 ? 'border-above' : 'border-ink';
+  const ring = l.suspicious ? 'border-above' : l.dealScore >= 10 ? 'border-below' : l.dealScore <= -10 ? 'border-above' : 'border-ink';
   const diffHtml = Math.abs(l.dealScore) < 3
     ? `<span class="font-medium text-ink">atbilst tirgum</span>`
     : diff > 0
@@ -94,7 +97,8 @@ function gauge(l) {
         <span class="absolute top-1/2 size-3.5 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] ${ring} bg-paper shadow-sm" style="left:${p}%"></span>
       </div>
       <div class="mt-1.5 flex justify-between text-[11px] text-faint"><span>${eur(l.rangeMin)}</span><span>${eur(l.rangeMax)}</span></div>
-      ${l.dealScore > 35 ? `<p class="mt-2 text-xs text-above">Aizdomīgi lēts. Pirms pirkšanas pārbaudi stāvokli un vēsturi.</p>` : ''}
+      ${l.suspicious ? `<p class="mt-2 text-xs text-above">Aizdomīgi lēts: ${pct(l.dealScore)}% zem tirgus parasti nozīmē kļūdu sludinājumā vai slēptu problēmu. Tāpēc to nerādām izdevīgāko vidū.</p>`
+        : l.dealScore > 35 ? `<p class="mt-2 text-xs text-above">Aizdomīgi lēts. Pirms pirkšanas pārbaudi stāvokli un vēsturi.</p>` : ''}
     </div>`;
 }
 
@@ -403,8 +407,9 @@ function ago(iso) {
 async function loadTop() {
   // Izdevīgākie no pēdējām 2 dienām, lai augšā nestāv vieni un tie paši auto; ja tādu nav — no visiem
   let data = await api('/api/listings?sort=deal&limit=4&sinceHours=48');
-  if (data.items.filter((d) => d.dealScore > 0).length < 4) data = await api('/api/listings?sort=deal&limit=4');
-  const deals = data.items.filter((d) => d.dealScore != null && d.dealScore > 0);
+  const isDeal = (d) => d.dealScore != null && d.dealScore > 0 && !d.suspicious;
+  if (data.items.filter(isDeal).length < 4) data = await api('/api/listings?sort=deal&limit=4');
+  const deals = data.items.filter(isDeal);
   $('#topGrid').innerHTML = deals.length
     ? deals.map(tile).join('')
     : `<div class="rounded-xl border border-dashed border-hair bg-paper p-8 text-sub sm:col-span-2 lg:col-span-4">

@@ -59,3 +59,28 @@ test('bojāti auto un auto rezerves daļām netiek salīdzināti un nav "izdevī
   assert.strictEqual(scored[0].dealScore, null);
   assert.ok(scored.slice(1).every((l) => !l.damaged && l.comparables === 3));
 });
+
+test('otomoto bojāti auto un līzinga pārņemšana netiek salīdzināti ar tirgu', () => {
+  const c = (id, price, title) => ({ source: 'otomoto', externalId: id, make: 'Nissan', model: 'Qashqai', year: 2022, price, mileage: 30000, title });
+  const list = [
+    c('a', 520, 'Nissan Qashqai · zarejestrowany w PL  uszkodzony'), c('b', 1880, 'Nissan Qashqai · Na części lub do naprawy'),
+    c('c', 3510, 'Nissan Qashqai · Odstąpię Leasing'), c('d', 2000, 'Qashqai dzinēja defekts, nevar iedarbināt'),
+    c('e', 20000, 'Nissan Qashqai'), c('f', 21000, 'Qashqai bez defektiem'), c('g', 19500, 'Nissan Qashqai'), c('h', 20500, 'Nissan Qashqai'),
+  ];
+  const scored = scoreListings(list);
+  assert.deepStrictEqual(scored.slice(0, 4).map((l) => [l.damaged || false, l.lease || false, l.dealScore]),
+    [[true, false, null], [true, false, null], [false, true, null], [true, false, null]]);
+  assert.ok(scored.slice(4).every((l) => !l.damaged && !l.lease && l.comparables === 3));
+});
+
+test('vairāk nekā 70% zem tirgus ir aizdomīgs, nevis "super"', () => {
+  const list = [car('a', 6000), car('b', 6200), car('c', 5800), car('d', 6100), car('fake', 1000), car('ok', 3000)];
+  const scored = scoreListings(list);
+  const fake = scored.find((l) => l.externalId === 'fake');
+  assert.ok(fake.dealScore > 70);
+  assert.strictEqual(fake.suspicious, true);
+  assert.strictEqual(fake.dealLabel, 'aizdomīgs');
+  const ok = scored.find((l) => l.externalId === 'ok');
+  assert.strictEqual(ok.suspicious, false);
+  assert.strictEqual(ok.dealLabel, 'super');
+});

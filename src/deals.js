@@ -16,11 +16,18 @@ const LEVELS = [
   { years: 5, km: 150_000, adjust: true },
 ];
 const YEARLY_LOSS = 0.08;
+// Vairāk nekā 70% zem tirgus gandrīz vienmēr nozīmē kļūdu vai slēptu iemeslu (bojāts, līzings, cena mēnesī),
+// nevis īstu piedāvājumu. Tādus atzīmējam kā aizdomīgus un neliekam "izdevīgāko" augšgalā.
+const SUSPICIOUS_SCORE = 70;
 
 // Bojāti auto, auto rezerves daļām, eksportam utt. — to cena nav salīdzināma ar normālu auto.
 // Tos neizmantojam tirgus cenas aprēķinā un neliekam "izdevīgāko" augšgalā.
-const DAMAGED_RE = /rezerves\s*daļ|uz\s*(?:daļām|detaļām)|(?<!nav\s)bojāts|pēc\s*avārijas|nav\s*tehnisk|nebrauc|motora\s*defekt|ātrumkārbas\s*defekt|zerleg|\bteile\b|ersatzteil|motorschaden|getriebeschaden|unfallwagen|(?<!ohne\s|keine\s)mängel|bastler|for\s*parts|not\s*running|запчаст|на\s*разбор|битая/i;
-const isDamaged = (l) => DAMAGED_RE.test(`${l.title || ''} ${l.details?.description || ''}`.slice(0, 600));
+const DAMAGED_RE = /rezerves\s*daļ|uz\s*(?:daļām|detaļām)|(?<!nav\s)bojāts|pēc\s*avārijas|nav\s*tehnisk|nebrauc|nav\s*braucam|(?<!bez\s|nav\s)defekt|nevar\s*iedarbin|neiedarbin|jāremontē|bez\s*dokument|bez\s*te\w*\s*apskat|zerleg|\bteile\b|ersatzteil|motorschaden|getriebeschaden|unfallwagen|(?<!ohne\s|keine\s)mängel|bastler|for\s*parts|not\s*running|uszkodz|na\s*części|do\s*naprawy|po\s*wypadku|nie\s*odpala|niesprawn|bez\s*dokumentów|запчаст|на\s*разбор|битая/i;
+// Līzinga pārņemšana (otomoto: "odstąpię leasing", "cesja leasingu"): cena ir pārņemšanas maksa, nevis auto cena
+const LEASE_RE = /odstąpię\s*leasing|cesj\w*\s*leasing|przej\w*\s*leasing|odstępne|leasingübernahme|lease\s*takeover/i;
+const textOf = (l) => `${l.title || ''} ${l.details?.description || ''}`.slice(0, 600);
+const isDamaged = (l) => DAMAGED_RE.test(textOf(l));
+const isLease = (l) => LEASE_RE.test(textOf(l));
 
 function median(nums) {
   if (!nums.length) return null;
@@ -49,6 +56,7 @@ const adjusted = (l, c, level) => (level.adjust ? c.price * (1 - YEARLY_LOSS) **
 
 function labelFor(score) {
   if (score == null) return null;
+  if (score > SUSPICIOUS_SCORE) return 'aizdomīgs';
   if (score >= 20) return 'super';
   if (score >= 10) return 'labs';
   if (score > -10) return 'tirgus';
@@ -64,9 +72,10 @@ function scoreListings(listings) {
   // un grupējam pēc marka+modelis, lai salīdzinātu tikai viena modeļa ietvaros — tā ir ātri arī ar 10 000+ auto.
   const keys = listings.map(modelKey);
   const damaged = listings.map(isDamaged);
+  const lease = listings.map((l, i) => !damaged[i] && isLease(l));
   const groups = new Map();
   listings.forEach((l, i) => {
-    if (damaged[i]) return;
+    if (damaged[i] || lease[i]) return;
     if (!groups.has(keys[i])) groups.set(keys[i], []);
     groups.get(keys[i]).push(l);
   });
@@ -78,6 +87,7 @@ function scoreListings(listings) {
 
   return listings.map((l, i) => {
     if (damaged[i]) return { ...l, marketPrice: null, dealScore: null, dealLabel: null, comparables: 0, damaged: true };
+    if (lease[i]) return { ...l, marketPrice: null, dealScore: null, dealLabel: null, comparables: 0, lease: true };
     const group = groups.get(keys[i]) || [];
     let comps = [];
     let level = LEVELS[0];
@@ -100,6 +110,7 @@ function scoreListings(listings) {
       marketPrice,
       dealScore,
       dealLabel: labelFor(dealScore),
+      suspicious: dealScore > SUSPICIOUS_SCORE,
       comparables: comps.length,
       // Līdzīgo auto cenu diapazons — frontendā zīmē "cenu skalu"
       rangeMin,
@@ -108,4 +119,4 @@ function scoreListings(listings) {
   });
 }
 
-module.exports = { scoreListings, median, isComparable, labelFor, isDamaged, MIN_COMPARABLES };
+module.exports = { scoreListings, median, isComparable, labelFor, isDamaged, isLease, MIN_COMPARABLES, SUSPICIOUS_SCORE };
